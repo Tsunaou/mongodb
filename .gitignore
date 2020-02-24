@@ -1,8 +1,10 @@
 /target
 /classes
 /checkouts
+/.idea
 pom.xml
 pom.xml.asc
+*.iml
 *.jar
 *.class
 /.lein-*
