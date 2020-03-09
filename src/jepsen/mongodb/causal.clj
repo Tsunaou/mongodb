@@ -4,6 +4,7 @@
              [checker :as checker]
              [generator :as gen]
              [independent :as independent]]
+            [jepsen.checker.timeline :as timeline]
             [knossos
              [op :as op]]
             [clojure.tools.logging :refer [info warn]]
@@ -90,9 +91,9 @@
   of 5 read (r) and write (w) operations (r w r w r) against a register (key).
   All operations in this CO must appear to execute in the order provided by
   the issuing site (process). We also look for anomalies, such as unexpected values"
-  [model]
+  []
   (reify checker/Checker
-    (check [this test history opts]
+    (check [this test model history opts]
       (let [completed (filter op/ok? history)]
         (loop [s model
                history completed]
@@ -116,9 +117,11 @@
 (defn cw2 [_ _] {:type :invoke, :f :write, :value 2})
 
 (defn test [opts]
-  {
-   ;:model (causal-register)
-   :checker (independent/checker (check causal-register))
+  {:model (causal-register)
+   :checker (checker/compose
+              {:causal (independent/checker (check))
+               :timeline (timeline/html)
+               :perf (checker/perf)})
    :generator (->> (independent/concurrent-generator
                      1
                      (range)

@@ -1,6 +1,7 @@
 (ns jepsen.mongodb.runner
   "Runs the full Mongo test suite, including a config file. Provides exit
-  status reporting."
+  status reporting.
+  本文件为Jepsen MongoDB测试的入口函数，主要向测试函数传入测试的选项options"
   (:gen-class)
   (:require [clojure.java.io :as io]
             [clojure.pprint :refer [pprint]]
@@ -18,10 +19,13 @@
                             [sharded :as sharded]]
             [jepsen [cli :as jc]
                     [core :as jepsen]
+                    [tests :as test]
                     [net :as net]
                     [os :as os]]
-            [jepsen.os.debian :as debian]))
+            [jepsen.os.debian :as debian]
+            [jepsen.os.ubuntu :as ubuntu]))
 
+;定义测试的类型
 (def ^:private test-names
   {"set" set/test
    "register" dc/test
@@ -30,21 +34,26 @@
    "sharded-set" sharded/set-test
    "sharded-register" sharded/register-test})
 
+;定义测试机器的Clock
 (def ^:private clock-skew-mechs
   {"none" mt/noop-clock
    "systemtime" mt/system-clock
    "faketime" faketime/clock})
 
+;虚拟机类型
 (def ^:private virt-mechs #{:none :lxc :vm})
 
+;时钟类型
 (def ^:private virt-mech->clock-skew-mech
   {:none faketime/clock, :lxc faketime/clock, :vm mt/system-clock})
 
+;网络类型
 (def ^:private virt-mech->net-mech
   {:none mnet/mongobridge, :lxc net/iptables, :vm net/iptables})
 
+;操作系统类型
 (def ^:private virt-mech->os
-  {:none os/noop, :lxc debian/os, :vm debian/os})
+  {:none os/noop, :lxc ubuntu/os, :vm ubuntu/os})
 
 (defn- bridge->node+dest
   [offset node]
@@ -89,7 +98,8 @@
                        :virtualization)))))
 
 (def ^:private opt-spec
-  "Command line option specification for tools.cli."
+  "Command line option specification for tools.cli.
+  命令行里，对于tools.cli的指令，可以指定默认值，解析函数和验证器"
   [[nil "--key-time-limit SECONDS"
     "How long should we test an individual key for, in seconds?"
     :default  100
@@ -185,6 +195,9 @@
            (jc/single-test-cmd
              {:opt-spec opt-spec
               :opt-fn process-opts
-              :tarball "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-debian81-4.0.0-rc1.tgz"
+              ;:tarball "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-debian81-4.0.0-rc1.tgz"
+              ;:tarball "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1604-4.0.16.tgz"
+              :tarball "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1604-4.2.3.tgz"
+              ;:tarball "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1804-4.0.16.tgz"
               :test-fn (fn [opts] ((:test opts) (dissoc opts :test)))}))
     args))

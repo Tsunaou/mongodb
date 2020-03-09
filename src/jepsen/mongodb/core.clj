@@ -252,6 +252,7 @@
     (reify db/DB
       (setup! [_ test node]
         (swap! state assoc node {:setup-called true})
+        ;; {node {:setup-called true}}
         (util/timeout 300000
                       (throw (RuntimeException.
                                (str "Mongo setup on " node " timed out!")))
@@ -262,6 +263,7 @@
                       ; subdirectories that the jepsen.mongodb.time/init!
                       ; function and the jepsen.mongodb.cluster/init! function
                       ; attempt to create files in, so it must happen first.
+                      ; TODO: 这里什么意思? 不过执行tarball的，直接就传入url了
                       (->> (or (some->> (:mongodb-dir test)
                                         io/file
                                         .getCanonicalPath
@@ -295,10 +297,11 @@
                 (finally (mdbutil/snarf-logs! test node)))))))))
 
 (defmacro with-errors
-  "Takes an invocation operation, a set of idempotent operation functions which
+  "Takes an invocation operation, a set of idempotent operation(幂等) functions which
   can be safely assumed to fail without altering the model state, and a body to
   evaluate. Catches MongoDB errors and maps them to failure ops matching the
-  invocation."
+  invocation.
+   执行invoke操作，捕获MongoDB的异常，并将其转化为failure"
   [op idempotent-ops & body]
   `(let [error-type# (if (~idempotent-ops (:f ~op))
                        :fail
@@ -393,19 +396,22 @@
 ;     {:kill-start  :start, :kill-stop  :stop} (kill-nem)
 ;     {:pause-start :start, :pause-stop :stop} (pause-nem)}))
 
-
+;; divergence 分歧，差异
 (defn primary-divergence-nemesis
   "A nemesis specifically designed to break Mongo's v0 replication protocol.
   There are three phases:
 
   1. Isolate a primary p1 and advance its clock. Writes to this primary will
   not be successfully replicated, but will advance its oplog.
+     将primary p1分离并且增加它的clock，向primary的写将不会成功复制，但是会增加它的oplog
 
   2. Allow a new primary p2 to become elected. Let it do some work, then kill
   it.
+     选举出新的primary p2。让它做相同的工作，然后kill掉p2
 
   3. Heal the network and restart all nodes. p2 may have committed writes, but
-  p1's higher optime will allow it to win the election."
+  p1's higher optime will allow it to win the election.
+     修复网络并且重新启动所有的节点，p2可能已经提交commit writes，但是p1的高optime将会让它被选举成primary"
   ([clock] (primary-divergence-nemesis clock nil))
   ([clock conns]
   (reify nemesis/Nemesis
@@ -465,6 +471,7 @@
   (or (.contains name "sharded")
       (.contains name "causal")))
 
+;; TODO: What is db hash?
 (defn mongodb-test
   "Constructs a test with the given name prefixed by 'mongodb_', merging any
   given options. Special options for Mongo:
@@ -473,7 +480,6 @@
   :time-limit         How long do we run the test for?
   :storage-engine     Storage engine to use
   :protocol-version   Replication protocol version
-
   At the end of every test, we use the 'dbHash' command to verify data
   consistency across each member of the replica set. We extend the nemesis to
   handle the :compare-dbhashes operations because it is a client that is
@@ -488,13 +494,16 @@
                           "_protocolVersion-" (:protocol-version opts))
           :os        debian/os
           :db        (db (:clock opts) (:tarball opts))
-          :nemesis   (nemesis/compose
-                      ;; We allow for dbhash checks by composing our
-                      ;; standard "chaos" nemesis with a client that
-                      ;; handles :compare-dbhashes ops.
-                      {#{:isolate :kill :stop}
-                       (primary-divergence-nemesis (:clock opts))
-                       #{:compare-dbhashes} dbhash/nemesis})
+          ;:nemesis   (nemesis/compose
+          ;             ;; TODO: What is dbhash checks
+          ;            ;; We allow for dbhash checks by composing our
+          ;            ;; standard "chaos" nemesis with a client that
+          ;            ;; handles :compare-dbhashes ops.
+          ;            {#{:isolate :kill :stop}
+          ;             (primary-divergence-nemesis (:clock opts))
+          ;             #{:compare-dbhashes} dbhash/nemesis})
+          ;:nemesis (nt/clock-nemesis)
+          :nemesis (nemesis/partition-halves)
           :generator (gen/phases
                       (->> (:generator opts)
                            (gen/nemesis (primary-divergence-gen))
@@ -513,6 +522,7 @@
 
    ;; We make sure that params in sharded tests take precedence over those assigned
    ;; above. This function is not growing well and should probably be reworked.
+   ;; TODO:当启动sharded测试的时候，优先使用sharded测试中的参数（但是意义不明）
    (if (sharded-test? name)
      (dissoc opts
              :clock)

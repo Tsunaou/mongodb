@@ -1,5 +1,6 @@
 (ns jepsen.mongodb.net
-  "MongoDB specific controls for network manipulation."
+  "MongoDB specific controls for network manipulation.
+   对于MongoDB网络操作的特定控制器"
   (:require [clj-time.core :as time]
             [jepsen.net :as net]
             [jepsen.util :refer [real-pmap]]
@@ -8,12 +9,14 @@
   (:import (org.joda.time Period)))
 
 (def ^:private clients
-  "A cache for the MongoClients used by the `mongobridge` network manipulator."
+  "A cache for the MongoClients used by the `mongobridge` network manipulator.
+   使用atom的原子类型"
   (atom nil))
 
 (defn- create-clients
   "Given a collection `nodes`, returns a hash-map with keys equal to the nodes
-  and values equals to a MongoClient instance to the associated node."
+  and values equals to a MongoClient instance to the associated node.
+   返回一个HashMap，keys是nodes，values是nodes上的MongoClient"
   [nodes]
   (into {} (map #(vector % (m/client %))) nodes))
 
@@ -21,7 +24,8 @@
   "Given a collection `nodes`, returns a hash-map with keys equal to the nodes
   and values equals to a MongoClient instance to the associated node. This
   function guarantees that a MongoClient instance will be constructed exactly
-  once for each node regardless of how many times it is called."
+  once for each node regardless of how many times it is called.
+   类似单例模式？"
   [nodes]
   (while (nil? @clients)
     (compare-and-set! clients nil (delay (create-clients nodes))))

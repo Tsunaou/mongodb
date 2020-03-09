@@ -1,6 +1,7 @@
 (ns jepsen.mongodb.dbutil
   "Utility functions for initializing and finalizing a MongoDB database's
-  environment."
+  environment.
+   用于搭建MongoDB的环境"
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.tools.logging :refer [info]]
@@ -9,10 +10,12 @@
             [jepsen.store :as store]
             [jepsen.util :as util]
             [jepsen.mongodb.control :as mcontrol]
-            [jepsen.mongodb.util :as mu])
+            [jepsen.mongodb.util :as mu]
+            [jepsen.os.debian :as debian])
   (:import (java.nio.file CopyOption)
            (java.nio.file Files)
-           (java.nio.file StandardCopyOption)))
+           (java.nio.file StandardCopyOption)
+           (java.io File)))
 
 (defn- upload!
   "Uploads the `local` file to the `remote` file location."
@@ -48,13 +51,16 @@
   "Extracts MongoDB binaries from an already present tarball."
   [test node file]
   ; Extract the tarball into the /opt/mongodb/ directory.
+  ; 解压压缩包到 /opt/mongodb/<hostname>/
   (c/exec :tar :xvf file :-C (mu/path-prefix test node)
           :--strip-components=1))
 
 ; The install-remote-tarball! is mutually recursive with the install-binaries!
 ; function so we need to forward declare one of them.
+; 相互调用可还行
 (declare install-binaries!)
 
+;; 从url 下载mongodb压缩包
 (defn- install-remote-tarball!
   "Downloads and extracts MongoDB binaries from a remote URL."
   [test node url]
@@ -122,7 +128,9 @@
   ; owns its contents unless we are running with out any virtualization.
   (when (= :vm (:virt test))
     (c/exec :chown :-R (str (:username test) ":" (:username test))
-            (mu/path-prefix test node))))
+            (mu/path-prefix test node)))
+  ;(install-bumptime!)
+  )
 
 (defn- log-files
   [test node]
