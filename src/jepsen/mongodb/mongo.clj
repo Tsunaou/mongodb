@@ -1,5 +1,6 @@
 (ns jepsen.mongodb.mongo
-  "MongoDB java driver adapter"
+  "MongoDB java driver adapter
+   MongoDB java 驱动的适配器：用Clojure代码调用Java代码"
   (:refer-clojure :exclude [])
   (:require [clojure.core :as c]
             [clojure.tools.logging :refer :all]
@@ -29,7 +30,8 @@
            (com.mongodb.session ClientSession)))
 
 (defn ^MongoClientOptions default-client-options
-  "MongoDB client options."
+  "MongoDB client options.
+   用Java互操作返回一个MongoClientOptions对象，并设定一些参数"
   []
   (.build
    (doto (MongoClientOptions/builder)
@@ -39,6 +41,7 @@
      (.socketTimeout            30000))))
 
 (defn server-address
+  "返回一个描述MongoDBServe的rAddress的对象"
   ([node]
    (ServerAddress. (name node)))
 
@@ -46,16 +49,20 @@
    (ServerAddress. (name node) port)))
 
 (defn client
-  "Creates a new Mongo client."
+  "Creates a new Mongo client.
+   创建一个Mongo Client"
+  ;FIXME:这里参数貌似不适配，但是貌似并不影响运行
   ([node]      (MongoClient. (server-address node) (default-client-options)))
   ([node port] (MongoClient. (server-address node port) (default-client-options))))
 
 (defn cluster-client
-  "Returns a mongoDB connection for all nodes in a test."
+  "Returns a mongoDB connection for all nodes in a test.
+   对于test中的:nodes，通过->>和map函数创建5个MongoClient"
   [test]
   (MongoClient. (->> test :nodes (map server-address))
                 (default-client-options)))
 
+; TODO: what is causal session in mongodb
 (defn start-causal-session [client]
   (let [opts (-> (ClientSessionOptions/builder)
                  (.causallyConsistent true)
@@ -95,7 +102,7 @@
   [^MongoCollection coll read-concern]
   (let [read-concern (c/get read-concerns read-concern)]
     (assert read-concern)
-    (.withReadConcern coll read-concern)))
+    (.withReadConcern coll read-concern)))                  ;.withReadConcern: Create a new MongoCollection instance with a different write concern.
 
 (defn ^MongoCollection with-write-concern
   "Returns a copy of the given collection, using the given write concern
@@ -103,7 +110,7 @@
   [^MongoCollection coll write-concern]
   (let [write-concern (c/get write-concerns write-concern)]
     (assert write-concern)
-    (.withWriteConcern coll write-concern)))
+    (.withWriteConcern coll write-concern)))                ;.withWriteConcern: Create a new MongoCollection instance with a different write concern.
 
 (defn ^MongoClient enable-secondary-reads
   [^MongoClient client]
@@ -159,13 +166,15 @@
 
 (defn iterable-seq
   "Turns a MongoIterable into a seq."
+  ; TODO: what is a seq?
   [^MongoIterable i]
   (-> i .iterator iterator-seq))
 
 (defn run-command!
   "Runs an arbitrary command on a database. Command is a flat list of kv pairs,
   with the first pair being the command name, which will be transformed into a
-  document. Includes a hardcoded 10 second timeout."
+  document. Includes a hardcoded 10 second timeout.
+   执行数据库的任意命令，这里用&，command预计是(k1,v1,k2,v2,..)这样，所以要partition"
   [^MongoDatabase db & command]
   (->> command
        (partition 2)
@@ -191,6 +200,7 @@
   "Find a document by ID.
   If a session is provided first, will use that session for a
   causally consistent read"
+  ;; TODO: 这里有causal相关了，但是session是啥呢
   ([^MongoCollection coll id]
    (-> coll
        (.find (Filters/eq "_id" id))
@@ -211,7 +221,7 @@
       (.findOneAndUpdate (Filters/eq "_id" id)
                          (Updates/inc "_dummy_field" 1)
                          (-> (FindOneAndUpdateOptions.)
-                             (.returnDocument ReturnDocument/AFTER)))
+                             (.returnDocument ReturnDocument/AFTER))) ;Set whether to return the document before it was updated / inserted or after
       document->map))
 
 (defn update-result->map
@@ -239,6 +249,7 @@
 
 (defn cas!
   "Atomically replace doc with doc' in coll."
+  ;; TODO:奇怪，cas本意不是compared-and-set么？
   [^MongoCollection coll doc doc']
   (-> coll
       (.replaceOne (document doc)

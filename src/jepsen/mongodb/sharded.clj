@@ -1,6 +1,7 @@
 (ns jepsen.mongodb.sharded
   "MongoDB tests against a sharded cluster. Including sets,
-  CAS register,and causal register."
+  CAS register,and causal register.
+   对MongoDB在分片集群下的测试"
   (:refer-clojure :exclude [test])
   (:require [jepsen.mongodb
              [core :as core]
@@ -9,7 +10,9 @@
              [cluster :as mc]
              [util :as mu]
              [time :as mt]
-             [mongo :as m]]
+             [mongo :as m]
+             [causal :as causal]
+             ]
             [jepsen
              [control :as c]
              [client  :as client]
@@ -19,7 +22,7 @@
              [independent :as independent]
              [nemesis :as nemesis]
              [util    :as util]]
-            [jepsen.tests.causal :as causal]
+            ;[jepsen.tests.causal :as causal]
             [jepsen.checker.timeline :as timeline]
             [jepsen.control.util :as cu]
             [jepsen.os.debian :as debian]
@@ -111,6 +114,7 @@
                                url)
                            (mdbutil/install! test node))
 
+                      ;; TODO: 接下来与单节点
                       ;; Setup configsvr replset
                       (init-configsvr! test node)
                       (start-daemon! clock test node {:pidfile "/mongod-configsvr.pid"
@@ -404,12 +408,12 @@
                {:mongos-sem  mongos-sem
                 :chunk-size  (:chunk-size opts)
                 :shard-count (:shard-count opts)})
-       :model (model/cas-register)
        :checker (checker/compose
                  {:linear  (independent/checker (checker/linearizable))
                   :timeline (independent/checker (timeline/html))
                   :perf     (checker/perf)})}))))
 
+;;  用于Jepsen Causal测试的Client,实现了Client协议，有5阶段的生命周期
 (defrecord CausalClient [db-name
                          coll-name
                          read-concern
@@ -420,9 +424,9 @@
                          session
                          last-optime]
   client/Client
-  (open! [this test node]
+  (open! [this test node]                                   ; 获得绑定到特定节点的客户端的副本
     (let [client (m/client node)
-          client (if secondary-ok?
+          client (if secondary-ok?                          ; 在connect=direct模式下，驱动会自动找寻主服务器. 在connect=replicaSet 模式下，驱动仅仅连接主服务器，并且所有的读写命令都连接到主服务器。
                    (m/enable-secondary-reads client)
                    client)
           coll   (-> client
@@ -436,12 +440,12 @@
              :session     (atom nil)
              :last-optime (atom nil))))
 
-  (invoke! [this test op]
+  (invoke! [this test op]                                   ;调用操作并返回结果
     (core/with-errors op #{read}
       (let [id    (key (:value op))
             value (val (:value op))]
         (case (:f op)
-          :read-init (let [_   (reset! session (m/start-causal-session client))
+          :read-init (let [_   (reset! session (m/start-causal-session client)) ;为当前的client开启一个causal session
                            doc (m/find-one @session coll id)
                            ;; Set the value to 0 (init value for BEGH checker)
                            ;; if read returns nil.
@@ -459,6 +463,7 @@
           :read (let [doc (m/find-one @session coll id)
                       v   (or (:value doc) 0)
                       optime (-> (m/optime @session) .getValue)
+                      ;TODO: 这里的last-optime为什么不更新？
                       lo @last-optime
                       _ (reset! last-optime optime)]
                   (assoc op
@@ -497,10 +502,23 @@
                  nil
                  nil))
 
+;; Causal相关的测试
+;; opts a map like {:read-concern :concurrency etc.}
 (defn causal-test [opts]
   (ensure-shard-count opts)
-  (let [mongos-sem (Semaphore. (or (:mongos-count opts)
-                                   (count (:nodes opts))))]
+  (info "opts in causal-test" opts)                      ;; TODO: 研究怎么格式化打印（而不是打印到一行里）
+  (info "causal/test opts" (causal/test opts))
+  (info "others" {:concurrency (count (:nodes opts))
+                  :client (causal-client opts)
+                  :nemesis (nemesis/partition-random-halves)
+                  :os debian/os
+                  :db (db (:clock opts)                                ;  TODO: 这个db是个啥
+                          (:tarball opts)
+                          {
+                           :chunk-size  (:chunk-size opts)
+                           :shard-count (:shard-count opts)})})
+  (let [mongos-sem (Semaphore. (or (:mongos-count opts)     ;; 好像没有看到代码里哪里有 mongos-count
+                                   (count (:nodes opts))))] ;; Semahphore Java信号量
     (core/mongodb-test
      "causal-register"
      (merge

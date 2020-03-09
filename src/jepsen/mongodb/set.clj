@@ -1,6 +1,7 @@
 (ns jepsen.mongodb.set
   "A big ol set test: lots of inserts, followed by a final read."
   (:refer-clojure :exclude [test])
+  (:import (com.mongodb MongoInterruptedException))
   (:require [clojure [pprint :refer :all]
                      [string :as str]]
             [clojure.tools.logging :refer [info debug warn]]

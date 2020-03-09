@@ -1,5 +1,6 @@
 (ns jepsen.mongodb.cluster
-  "Functions for starting and stopping MongoDB deployments."
+  "Functions for starting and stopping MongoDB deployments.
+   用于开始和停止MongoDB部署的函数"
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.tools.logging :refer [info]]
@@ -116,7 +117,10 @@
                :--fork
                :--pidfilepath (mu/path-prefix test node "/mongod.pid")
                :--port port
-               :--config (mu/path-prefix test node "/mongod.conf"))))
+               :--config (mu/path-prefix test node "/mongod.conf")
+               ;:--bind_ip "0.0.0.0"
+               :--bind_ip_all
+               )))
 
 (defn- start-mongobridge!
   [test node dest]
