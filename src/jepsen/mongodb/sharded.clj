@@ -94,11 +94,12 @@
       (cu/stop-daemon! (mu/path-prefix test node (str "/mongod-shardsvr" idx ".pid"))))))
 
 (defn db
+  "在特定url的节点，上搭建 MongoDB Sharded Cluster"
   [clock url {:keys [mongos-sem chunk-size shard-count]}]
   (let [state (atom {})]
     (reify db/DB
-      (setup! [_ test node]
-        (swap! state assoc node {:setup-called true})
+      (setup! [_ test node]                                 ; Set up the database on this particular node.
+        (swap! state assoc node {:setup-called true})       ; 表明 node 已经准备启动 state: {node {:setup-called true}}
         (util/timeout 300000
                       (throw (RuntimeException.
                               (str "Mongo setup on " node " timed out!")))
@@ -114,22 +115,29 @@
                                url)
                            (mdbutil/install! test node))
 
-                      ;; TODO: 接下来与单节点
+                      ;; TODO: 接下来与非分片的数据库搭建就不同了
+                      ;; 阶段一 Create the Config Server Replica Set
                       ;; Setup configsvr replset
+                      ;; Start each member of the config server replica set
                       (init-configsvr! test node)
+                      ;; net.port: 27019 if mongod is a config server member
                       (start-daemon! clock test node {:pidfile "/mongod-configsvr.pid"
                                                       :process-name "mongod"
                                                       :port 27019
                                                       :configfile "/mongod-configsvr.conf"})
+                      ;; 加入节点，直到primary节点对其他所有节点可见
                       (core/join! test node {:port 27019 :repl-set-name "configsvr"})
 
+                      ;; 阶段二 Start a mongos for the Sharded Cluster
                       ;; Nodes spawn a router for the setup phase.
                       (init-mongos! test node)
+                      ;; net.port: 27017 for mongod (if not a shard member or a config server member) or mongos instance
                       (start-daemon! clock test node {:pidfile "/mongos.pid"
                                                       :process-name "mongos"
                                                       :port 27017
                                                       :configfile "/mongos.conf"})
 
+                      ;; 阶段三 Init and Add Shards to the Cluster
                       ;; Setup `shard-count` shardsvr replsets
                       (doseq [idx (range 0 shard-count)]
                         ;; Port starts at 27020
@@ -149,11 +157,13 @@
                           (m/admin-command! (m/client node 27017)
                                             :addShard (str "jepsen" idx "/" node ":" port))))
 
+                      ;; 阶段四 配置集群
                       ;; Configure the cluster
                       (let [conn (m/client node 27017)
                             coll (m/collection (m/db conn "config") "settings")]
                         ;; Wrapped with meh to swallow errors from repeated calls. It's not
                         ;; really what we want but ok.
+                        ;; Enable Sharding for a Database
                         (util/meh (m/admin-command! conn :enableSharding "jepsen"))
                         (util/meh (m/admin-command! conn
                                                     :shardCollection "jepsen.sharded"
@@ -180,6 +190,7 @@
                 (kill-all! test node)
                 (finally (mdbutil/snarf-logs! test node)))))))))
 
+;; Client for Set
 (defrecord Client [db-name coll-name read-concern write-concern client coll]
   client/Client
   (open! [this test node]
@@ -217,6 +228,7 @@
            (:write-concern opts)
            nil nil))
 
+;; Client for Register
 (defrecord RegisterClient [db-name
                            coll-name
                            read-concern
@@ -526,7 +538,7 @@
       (causal/test opts)
       {:concurrency (count (:nodes opts))
        :client (causal-client opts)
-       :nemesis (nemesis/partition-random-halves)
+       :nemesis (sharded-nemesis)
        :os debian/os
        :db (db (:clock opts)
                (:tarball opts)
