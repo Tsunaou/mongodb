@@ -116,6 +116,18 @@
 (defn cw1 [_ _] {:type :invoke, :f :write, :value 1})
 (defn cw2 [_ _] {:type :invoke, :f :write, :value 2})
 
+(defn shard-migration-gen []
+  (gen/seq (cycle [(gen/sleep 10)
+                   {:type :info, :f :move}
+                   (gen/sleep 0.5)
+                   {:type :info, :f :move}
+                   (gen/sleep 0.5)
+                   {:type :info, :f :move}
+                   (gen/sleep 0.5)
+                   {:type :info, :f :start}
+                   (gen/sleep 20)
+                   {:type :info, :f :stop}])))
+
 (defn test [opts]
   {:model (causal-register)
    :checker (checker/compose
@@ -127,9 +139,11 @@
                      (range)
                      (fn [k] (gen/seq [ri cw1 r cw2 r])))
                    (gen/stagger 1)
+                   ;(gen/nemesis
+                   ;  (gen/seq (cycle [(gen/sleep 10)
+                   ;                   {:type :info, :f :start}
+                   ;                   (gen/sleep 10)
+                   ;                   {:type :info, :f :stop}])))
                    (gen/nemesis
-                     (gen/seq (cycle [(gen/sleep 10)
-                                      {:type :info, :f :start}
-                                      (gen/sleep 10)
-                                      {:type :info, :f :stop}])))
+                     (shard-migration-gen))
                    (gen/time-limit (:time-limit opts)))})

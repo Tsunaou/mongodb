@@ -250,8 +250,8 @@
     ; teardown! method is instead responsible for downloading/copying the logs
     ; to the store/ directory.
     (reify db/DB
-      (setup! [_ test node]
-        (swap! state assoc node {:setup-called true})
+      (setup! [_ test node]                                 ;Set up the database on this particular node.
+        (swap! state assoc node {:setup-called true})       ; 表明 node 已经准备启动
         ;; {node {:setup-called true}}
         (util/timeout 300000
                       (throw (RuntimeException.
