@@ -75,7 +75,7 @@
 (def checker
   "Checker for reporting the results of the dbhash check."
   (reify checker/Checker
-    (check [this test model history opts]
+    (check [this test history opts]
       (if-let [dbhash-result
                (->> history
                     (filter (fn [op] (= :compare-dbhashes (:f op))))

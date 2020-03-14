@@ -91,9 +91,9 @@
   of 5 read (r) and write (w) operations (r w r w r) against a register (key).
   All operations in this CO must appear to execute in the order provided by
   the issuing site (process). We also look for anomalies, such as unexpected values"
-  []
+  [model]
   (reify checker/Checker
-    (check [this test model history opts]
+    (check [this test history opts]
       (let [completed (filter op/ok? history)]
         (loop [s model
                history completed]
@@ -115,6 +115,8 @@
 (defn ri  [_ _] {:type :invoke, :f :read-init})
 (defn cw1 [_ _] {:type :invoke, :f :write, :value 1})
 (defn cw2 [_ _] {:type :invoke, :f :write, :value 2})
+(defn cw3 [_ _] {:type :invoke, :f :write, :value 3})
+(defn cw4 [_ _] {:type :invoke, :f :write, :value 4})
 
 (defn shard-migration-gen []
   (gen/seq (cycle [(gen/sleep 10)
@@ -129,15 +131,16 @@
                    {:type :info, :f :stop}])))
 
 (defn test [opts]
-  {:model (causal-register)
-   :checker (checker/compose
-              {:causal (independent/checker (check))
+  {:checker (checker/compose
+              {:causal (independent/checker (check (causal-register)))
                :timeline (timeline/html)
-               :perf (checker/perf)})
+               :graph (checker/latency-graph)
+               :perf (checker/perf)
+               :clock (checker/clock-plot)})
    :generator (->> (independent/concurrent-generator
                      1
                      (range)
-                     (fn [k] (gen/seq [ri cw1 r cw2 r])))
+                     (fn [k] (gen/seq [ri cw1 r cw2 r cw3 r])))
                    (gen/stagger 1)
                    ;(gen/nemesis
                    ;  (gen/seq (cycle [(gen/sleep 10)

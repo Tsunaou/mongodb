@@ -53,7 +53,7 @@
 
 ;操作系统类型
 (def ^:private virt-mech->os
-  {:none os/noop, :lxc ubuntu/os, :vm ubuntu/os})
+  {:none os/noop, :lxc debian/os, :vm debian/os})
 
 (defn- bridge->node+dest
   [offset node]

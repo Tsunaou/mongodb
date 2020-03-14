@@ -23,6 +23,7 @@
              [nemesis :as nemesis]
              [util    :as util]]
             ;[jepsen.tests.causal :as causal]
+            [jepsen.tests.causal-reverse :as causal-reverse]
             [jepsen.checker.timeline :as timeline]
             [jepsen.control.util :as cu]
             [jepsen.os.debian :as debian]
@@ -421,7 +422,7 @@
                 :chunk-size  (:chunk-size opts)
                 :shard-count (:shard-count opts)})
        :checker (checker/compose
-                 {:linear  (independent/checker (checker/linearizable))
+                 {:linear  (independent/checker (checker/linearizable (model/cas-register)))
                   :timeline (independent/checker (timeline/html))
                   :perf     (checker/perf)})}))))
 
