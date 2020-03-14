@@ -5,7 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/tools.cli "0.4.1"]
-                 [jepsen "0.1.11"]
+                 [jepsen "0.1.17"]
                  [org.mongodb/mongodb-driver "3.6.3"]]
   :jvm-opts ["-Xmx16g"
              "-Xms16g"

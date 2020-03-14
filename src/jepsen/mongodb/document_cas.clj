@@ -5,26 +5,15 @@
                      [string :as str]]
             [clojure.java.io :as io]
             [clojure.tools.logging :refer [debug info warn]]
-            [jepsen [core      :as jepsen]
-                    [util      :as util :refer [meh timeout]]
-                    [control   :as c :refer [|]]
-                    [client    :as client]
-                    [checker   :as checker]
-                    [independent :as independent]
-                    [generator :as gen]
-                    [nemesis   :as nemesis]
-                    [store     :as store]
-                    [report    :as report]
-                    [tests     :as tests]]
-            [jepsen.control [net :as net]
-                            [util :as net/util]]
-            [jepsen.os.debian :as debian]
+            [jepsen
+             [client    :as client]
+             [checker   :as checker]
+             [independent :as independent]
+             [generator :as gen]]
             [jepsen.checker.timeline :as timeline]
-            [knossos.core :as knossos]
             [knossos.model :as model]
             [jepsen.mongodb.core :refer :all]
-            [jepsen.mongodb.mongo :as m])
-  (:import (clojure.lang ExceptionInfo)))
+            [jepsen.mongodb.mongo :as m]))
 
 (defrecord Client [db-name
                    coll-name
@@ -134,9 +123,9 @@
                                     (gen/time-limit
                                       (:key-time-limit opts)))))
                            (gen/stagger 1))
-       :model         (model/cas-register)
+       ;:model         (model/cas-register)
        :checker       (checker/compose
-                        {:linear  (independent/checker (checker/linearizable))
+                        {:linear  (independent/checker (checker/linearizable (model/cas-register)))
                          :timeline (independent/checker (timeline/html))
                          :perf     (checker/perf)})}
       opts)))

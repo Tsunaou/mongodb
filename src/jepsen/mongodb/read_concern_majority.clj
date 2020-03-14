@@ -111,9 +111,9 @@
   "Given a set of :add operations interspersed with periodic :read ops, verify
   that for every read R that reads a set of elements D, any later read R' reads
   elements D', where D is a subset of D'."
-  []
+  [model]
   (reify checker/Checker
-    (check [this test model history opts]
+    (check [this test history opts]
       (let [reads (->> history
                        (filter op/ok?)
                        (filter #(= :read (:f %)))
@@ -165,7 +165,7 @@
                                  (write-gen write-interval-secs))
        :final-generator nil
        :checker (checker/compose
-                  {:read-concern-majority (rcmajority-checker)
+                  {:read-concern-majority (rcmajority-checker nil)
                    :timeline              (timeline/html)
                    :perf                  (checker/perf)})}
       ;; The clients for this test always uses a :majority read concern, so we
