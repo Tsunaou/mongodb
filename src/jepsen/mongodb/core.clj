@@ -488,10 +488,14 @@
   [name opts]
   (merge
    (assoc tests/noop-test
-          :name      (str "mongodb"
-                          "_test-" name
-                          "_storageEngine-" (:storage-engine opts)
-                          "_protocolVersion-" (:protocol-version opts))
+          :name      (str "mongo-" name
+                          "_wc_" (:write-concern opts)
+                          "_rc_" (:read-concern opts)
+                          "_ti_" (:time-limit opts)
+                          "_sd_" (:shard-count opts)
+                          "_cry_" (:concurrency opts)
+                          "_se-" (:storage-engine opts)
+                          "_pv-" (:protocol-version opts))
           :os        debian/os
           :db        (db (:clock opts) (:tarball opts))
           ;:nemesis   (nemesis/compose

@@ -23,6 +23,8 @@
              [nemesis :as nemesis]
              [util    :as util]]
             ;[jepsen.tests.causal :as causal]
+            [jepsen.nemesis.combined :as combined]
+            [jepsen.nemesis.time :as ne-time]
             [jepsen.tests.causal-reverse :as causal-reverse]
             [jepsen.checker.timeline :as timeline]
             [jepsen.control.util :as cu]
@@ -181,7 +183,9 @@
                         ;; lock, they tear down the router they used for setup, just like a
                         ;; game of musical chairs.
                         (when-not (.tryAcquire mongos-sem)
-                          (cu/stop-daemon! (mu/path-prefix test node "/mongos.pid"))))))
+                          (cu/stop-daemon! (mu/path-prefix test node "/mongos.pid")))))
+        (info (str (name node) " Setup OK!"))
+        (info (str "sessions " (:sessions test))))
 
       (teardown! [_ test node]
         (if-not (:setup-called (get @state node))
@@ -537,7 +541,8 @@
      (merge
       opts
       (causal/test opts)
-      {:concurrency (count (:nodes opts))
+      {
+       ;:concurrency (count (:nodes opts))
        :client (causal-client opts)
        :nemesis (sharded-nemesis)
        :os debian/os

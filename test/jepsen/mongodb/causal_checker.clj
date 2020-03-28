@@ -1,15 +1,11 @@
-(ns jepsen.mongodb.causal
-  (:refer-clojure :exclude [test])
-  (:require [jepsen
-             [checker :as checker]
-             [generator :as gen]
-             [independent :as independent]]
-            [jepsen.checker.timeline :as timeline]
-            [knossos
-             [op :as op]]
-            [clojure.tools.logging :refer [info warn]]
-            [clojure.pprint :refer [pprint]]
-            [jepsen.mongodb.core :as core]))
+(ns jepsen.mongodb.causal-checker
+  (:require [clojure.test :refer :all]
+            [jepsen.checker :as checker]
+            [jepsen.mongodb.adhoc-history :as his]
+            [knossos.op :as op]
+            ))
+
+
 
 (defprotocol Model
   (step [model op]))
@@ -111,54 +107,28 @@
                  :error (:msg s')}
                 (recur s' (rest history))))))))))
 
-;; Generators
-(defn r   [_ _] {:type :invoke, :f :read})
-(defn ri  [_ _] {:type :invoke, :f :read-init})
-(defn cw1 [_ _] {:type :invoke, :f :write, :value 1})
-(defn cw2 [_ _] {:type :invoke, :f :write, :value 2})
-(defn cw3 [_ _] {:type :invoke, :f :write, :value 3})
-(defn cw4 [_ _] {:type :invoke, :f :write, :value 4})
-(defn cw5 [_ _] {:type :invoke, :f :write, :value 5})
-(defn cw6 [_ _] {:type :invoke, :f :write, :value 6})
-(defn cw7 [_ _] {:type :invoke, :f :write, :value 7})
-(defn cw8 [_ _] {:type :invoke, :f :write, :value 8})
-(defn cw9 [_ _] {:type :invoke, :f :write, :value 9})
 
-(def operations
-  [ri cw1 r cw2 r cw3 r cw4 r cw5 r cw6 r cw7 r cw8 r cw9 r])
 
-(defn shard-migration-gen []
-  (gen/seq (cycle [(gen/sleep 10)
-                   {:type :info, :f :move}
-                   (gen/sleep 0.5)
-                   {:type :info, :f :move}
-                   (gen/sleep 0.5)
-                   {:type :info, :f :move}
-                   (gen/sleep 0.5)
-                   {:type :info, :f :start}
-                   (gen/sleep 20)
-                   {:type :info, :f :stop}])))
+;(defn causal-check
+;  [model]
+;  (reify checker/Checker
+;    (check [checker test history opts]
+;      (let [completed (filter op/ok? history)]
+;
+;        ))))
 
-(defn test [opts]
-  {:checker   (checker/compose
-                {:causal   (independent/checker (check (causal-register)))
-                 ;:timeline (timeline/html)
-                 ;:graph    (checker/latency-graph)
-                 ;:perf     (checker/perf)
-                 ;:clock    (checker/clock-plot)
-                 :stats    (checker/stats)
-                 :unhandled-exceptions (checker/unhandled-exceptions)
-                 })
-   :generator (->> (independent/concurrent-generator
-                     5
-                     (range)
-                     (fn [k] (gen/seq [ri cw1 r cw2 r cw3 r cw4 r cw5 r cw6 r cw7 r cw8 r cw9 r])))
-                   (gen/stagger 1)
-                   ;(gen/nemesis
-                   ;  (gen/seq (cycle [(gen/sleep 10)
-                   ;                   {:type :info, :f :start}
-                   ;                   (gen/sleep 10)
-                   ;                   {:type :info, :f :stop}])))
-                   (gen/nemesis
-                     (shard-migration-gen))
-                   (gen/time-limit (:time-limit opts)))})
+(defn causal-check
+  [history]
+  (let [completed (filter op/ok? history)]
+    (loop [his completed]
+      (if (empty? his)
+        ;; We've checked every operation in the history
+        {:valid? true}
+
+        ;; checking checking checking...
+        (let [op (first his)]
+          (println op)
+          (recur (rest his)))))))
+
+
+(println (causal-check his/history))
