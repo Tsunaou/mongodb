@@ -139,8 +139,12 @@
                    (gen/sleep 20)
                    {:type :info, :f :stop}])))
 
+(def clients-per-key 5)
+
 (defn test [opts]
-  {:checker   (checker/compose
+  {
+   :clients-per-key clients-per-key
+   :checker   (checker/compose
                 {:causal   (independent/checker (check (causal-register)))
                  ;:timeline (timeline/html)
                  ;:graph    (checker/latency-graph)
@@ -150,7 +154,7 @@
                  :unhandled-exceptions (checker/unhandled-exceptions)
                  })
    :generator (->> (independent/concurrent-generator
-                     5
+                     clients-per-key
                      (range)
                      (fn [k] (gen/seq [ri cw1 r cw2 r cw3 r cw4 r cw5 r cw6 r cw7 r cw8 r cw9 r])))
                    (gen/stagger 1)

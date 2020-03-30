@@ -9,7 +9,8 @@
            (java.util ArrayList
                       List)
            (org.bson Document
-                     BsonTimestamp)
+                     BsonTimestamp
+                     BsonDocument)
            (com.mongodb MongoClient
                         MongoClientOptions
                         ClientSessionOptions
@@ -119,6 +120,22 @@
 (defn ^BsonTimestamp optime
   [^ClientSession session]
   (.getOperationTime session))
+
+(defn ^BsonTimestamp operationTime
+  [^ClientSession session]
+  (.getOperationTime session))
+
+(defn advanceOperationTime
+  [^ClientSession session ^BsonTimestamp optime]
+  (.advanceOperationTime session optime))
+
+(defn ^BsonDocument clusterTime
+  [^ClientSession session]
+  (.getClusterTime session))
+
+(defn advanceClusterTime
+  [^ClientSession session ^BsonDocument clusterTime]
+  (.advanceClusterTime session clusterTime))
 
 (defn document
   "Creates a Mongo document from a map."
