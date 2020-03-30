@@ -2,6 +2,8 @@
   (:require [clojure.test :refer :all]
             [jepsen.checker :as checker]
             [jepsen.mongodb.adhoc-history :as his]
+            [jepsen.mongodb.test-knossos :as tk]
+            [jepsen.mongodb.mongo :as m]
             [knossos.op :as op]
             ))
 
@@ -127,8 +129,123 @@
 
         ;; checking checking checking...
         (let [op (first his)]
-          (println op)
+          (println (knossos.op/Op->map op))
           (recur (rest his)))))))
 
+(defn causal-check-process
+  [history]
+  (let [completed history]
+    (loop [his completed]
+      (if (empty? his)
+        ;; We've checked every operation in the history
+        {:valid? true}
 
-(println (causal-check his/history))
+        ;; checking checking checking...
+        (let [op (knossos.op/Op->map (first his))]
+          (when (integer? (:process op))
+            (let [process (:process op)]
+              (println (mod process 10)))
+            )
+
+          (recur (rest his)))))))
+
+;(println (causal-check his/history))
+;(println (causal-check tk/raw-history))
+;(println (causal-check-process tk/raw-history))
+
+(def concurrency (atom 1))
+(def threads (atom (vec (range @concurrency))))
+(def thread->session (atom (vec (take @concurrency (cycle [nil])))))                             ;存放线程对应client的causal session
+(def clients-per-key (atom 1))
+
+(def group-size (atom 1))                                   ; 每一组的进程数
+(def group-count (atom 1))                                  ; 一共有多少组
+(def group-threads (atom []))                               ; 每组对应的进程
+
+
+(defn process->thread                                       ; 根据mod关系，得到process对应的线程
+  [process]
+  (mod process @concurrency))
+
+(defn print-threads-session-status
+  []
+  (println "concurrency "  @concurrency)
+  (println "threads " @threads)
+  (println "thread->session " @thread->session)
+  (println "clients-per-key " @clients-per-key)
+  (println "group-size" @group-size)
+  (println "group-count" @group-count)
+  (println "group-threads" @group-threads))
+
+(defn reset-concurrency
+  [n]
+  (reset! concurrency n)
+  (reset! threads (vec (range @concurrency)))
+  (reset! thread->session (vec (take @concurrency (cycle [nil])))))
+
+(defn reset-clients-per-key
+  [n]
+  (reset! clients-per-key n)
+  (reset! group-size n)
+  (let [thread-count (count @threads)]
+    (reset! group-count (quot thread-count @group-size)))
+  (reset! group-threads (->> @threads
+                             (partition @group-size)
+                             (mapv vec))))
+
+(defn update-session
+  [process session]
+  (let [thread (process->thread process)]
+    (reset! thread->session (assoc @thread->session thread session))))
+
+(defn get-session
+  [process]
+  (let [thread (process->thread process)]
+    (get @thread->session thread)))
+
+(defn get-key-threads
+  [process]
+  (let [thread (process->thread process)
+        group (quot thread @group-size)]
+    (nth @group-threads group)))
+
+(defn syn-sessions
+  [process]
+  )
+
+(println "Before reset!")
+(print-threads-session-status)
+
+(reset-concurrency 100)
+(reset-clients-per-key 20)
+
+(println "After reset!")
+(print-threads-session-status)
+
+;(loop [c-threads @threads]
+;  (if (empty? c-threads)
+;    ;; We've checked every operation in the history
+;    {:valid? true}
+;
+;    ;; checking checking checking...
+;    (let [current (first c-threads)
+;          tmp-maps @thread->session]
+;      (println current)
+;      (reset! thread->session (assoc tmp-maps (str current) nil))
+;      (println @thread->session)
+;      (recur (rest c-threads)))))
+
+(defn get-date []
+  (.toString (java.util.Date.)))
+
+;(doseq [thread (range @concurrency)]
+;  (println (str "thread is " thread))
+;  (update-session thread (str "session" thread (get-date)))
+;  (println (get-session thread))
+;  )
+;
+;
+;(println @thread->session)
+(doseq [x (range @concurrency)]
+  (println (get-key-threads x)))
+

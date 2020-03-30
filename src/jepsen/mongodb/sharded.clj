@@ -40,6 +40,62 @@
   (:import [java.util.concurrent Semaphore
             TimeUnit]))
 
+(def concurrency (atom 1))
+(def threads (atom (vec (range @concurrency))))
+(def thread->session (atom (vec (take @concurrency (cycle [nil])))))                             ;存放线程对应client的causal session
+(def clients-per-key (atom 1))
+
+(def group-size (atom 1))                                   ; 每一组的进程数
+(def group-count (atom 1))                                  ; 一共有多少组
+(def group-threads (atom []))                               ; 每组对应的进程
+
+
+(defn process->thread                                       ; 根据mod关系，得到process对应的线程
+  [process]
+  (mod process @concurrency))
+
+(defn print-threads-session-status
+  []
+  (println "concurrency "  @concurrency)
+  (println "threads " @threads)
+  (println "thread->session " @thread->session)
+  (println "clients-per-key " @clients-per-key)
+  (println "group-size" @group-size)
+  (println "group-count" @group-count)
+  (println "group-threads" @group-threads))
+
+(defn reset-concurrency
+  [n]
+  (reset! concurrency n)
+  (reset! threads (vec (range @concurrency)))
+  (reset! thread->session (vec (take @concurrency (cycle [nil])))))
+
+(defn reset-clients-per-key
+  [n]
+  (reset! clients-per-key n)
+  (reset! group-size n)
+  (let [thread-count (count @threads)]
+    (reset! group-count (quot thread-count @group-size)))
+  (reset! group-threads (->> @threads
+                             (partition @group-size)
+                             (mapv vec))))
+
+(defn update-session
+  [process session]
+  (let [thread (process->thread process)]
+    (reset! thread->session (assoc @thread->session thread session))))
+
+(defn get-session
+  [process]
+  (let [thread (process->thread process)]
+    (get @thread->session thread)))
+
+(defn get-key-threads
+  [process]
+  (let [thread (process->thread process)
+        group (quot thread @group-size)]
+    (nth @group-threads group)))
+
 (defn init-configsvr! [test node]
   (c/sudo (:username test)
           (mcontrol/exec test
@@ -185,7 +241,9 @@
                         (when-not (.tryAcquire mongos-sem)
                           (cu/stop-daemon! (mu/path-prefix test node "/mongos.pid")))))
         (info (str (name node) " Setup OK!"))
-        (info (str "sessions " (:sessions test))))
+        (info (str "sessions " (:sessions test)))
+        ;; TODO: 在这里预处理causal session相关的数据结构
+        )
 
       (teardown! [_ test node]
         (if-not (:setup-called (get @state node))
@@ -461,9 +519,45 @@
     (core/with-errors op #{read}
       (let [id    (key (:value op))
             value (val (:value op))]
+        (info jepsen.generator/*threads*)
+        (let [process (:process op)
+              group-threads (get-key-threads process)]
+          (info (str "group threads " process " " group-threads))
+          ;; causal session 的创建
+          (if (nil? @session)
+            ;; 若当前client没有session，则为其创建一个session
+            (let [new-session (m/start-causal-session client)
+                  _   (update-session process new-session)
+                  _   (reset! session new-session)]       ;为当前的client开启一个causal session
+              ))
+          ; session 的输出
+          ;(doseq [thread group-threads]
+          ;  (let [session (get-session thread)]
+          ;    (if (nil? session)
+          ;      (info (str "thread " thread " session is none"))
+          ;      (info (str "thread " thread " " session)))))
+          ;; causal session 的同步
+          ;; TODO: 我觉得这里可能会死锁
+          (doseq [friend-process group-threads]
+            (if-not (= process friend-process)
+              (let [friend-session (get-session friend-process)]
+                (if-not (nil? friend-session)
+                  (let [friend-optime (m/operationTime friend-session)
+                        friend-clustertime (m/clusterTime friend-session)]
+                    ;(info (str "optime " friend-optime))
+                    ;(info (str "clustertime " friend-clustertime))
+                    ;(info (str "session " @session))
+                    (m/advanceOperationTime @session friend-optime)
+                    (m/advanceClusterTime @session friend-clustertime))))))
+
+              )
+        ;(case (:f op)
+        ;  :read-init ()
+        ;  :read ()
+        ;  :write ()
+        ;  )
         (case (:f op)
-          :read-init (let [_   (reset! session (m/start-causal-session client)) ;为当前的client开启一个causal session
-                           doc (m/find-one @session coll id)
+          :read-init (let [doc (m/find-one @session coll id)
                            ;; Set the value to 0 (init value for BEGH checker)
                            ;; if read returns nil.
                            v   (or (:value doc) 0)
@@ -519,6 +613,27 @@
                  nil
                  nil))
 
+(defn update-concurrency-per-key
+  [concur c-per-key]
+  (info "not equal, update")
+  (reset-concurrency concur)
+  (reset-clients-per-key c-per-key)
+  (print-threads-session-status)
+  )
+
+(defn prepare-threads
+  [opts]
+  (let [concur (:concurrency opts)
+        concur-before @concurrency
+        c-per-key (:clients-per-key (causal/test clients-per-key))
+        node "control node"]
+    (info (str "on node" node " after"))
+    (if (= concur concur-before)
+      (info "equal")
+      (update-concurrency-per-key concur c-per-key))
+    )
+  )
+
 ;; Causal相关的测试
 ;; opts a map like {:read-concern :concurrency etc.}
 (defn causal-test [opts]
@@ -534,6 +649,7 @@
                           {
                            :chunk-size  (:chunk-size opts)
                            :shard-count (:shard-count opts)})})
+  (prepare-threads opts)
   (let [mongos-sem (Semaphore. (or (:mongos-count opts)     ;; 好像没有看到代码里哪里有 mongos-count
                                    (count (:nodes opts))))] ;; Semahphore Java信号量
     (core/mongodb-test
