@@ -139,7 +139,7 @@
                    (gen/sleep 20)
                    {:type :info, :f :stop}])))
 
-(def clients-per-key 5)
+(def clients-per-key 2)
 
 (defn test [opts]
   {
