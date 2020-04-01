@@ -48,6 +48,7 @@
 (def group-size (atom 1))                                   ; 每一组的进程数
 (def group-count (atom 1))                                  ; 一共有多少组
 (def group-threads (atom []))                               ; 每组对应的进程
+(def group-keys (atom []))                                  ; 每组对应的key
 
 
 (defn process->thread                                       ; 根据mod关系，得到process对应的线程
@@ -62,7 +63,8 @@
   (println "clients-per-key " @clients-per-key)
   (println "group-size" @group-size)
   (println "group-count" @group-count)
-  (println "group-threads" @group-threads))
+  (println "group-threads" @group-threads)
+  (println "group-keys" @group-keys))
 
 (defn reset-concurrency
   [n]
@@ -78,7 +80,8 @@
     (reset! group-count (quot thread-count @group-size)))
   (reset! group-threads (->> @threads
                              (partition @group-size)
-                             (mapv vec))))
+                             (mapv vec)))
+  (reset! group-keys (vec (take @group-count (cycle [nil])))))
 
 (defn update-session
   [process session]
@@ -95,6 +98,18 @@
   (let [thread (process->thread process)
         group (quot thread @group-size)]
     (nth @group-threads group)))
+
+(defn get-group-key
+  [process]
+  (let [thread (process->thread process)
+        group (quot thread @group-size)]
+    (nth @group-keys group)))
+
+(defn set-group-key
+  [process key]
+  (let [thread (process->thread process)
+        group (quot thread @group-size)]
+    (reset! group-keys (assoc @group-keys group key))))
 
 (defn init-configsvr! [test node]
   (c/sudo (:username test)
@@ -521,24 +536,33 @@
             value (val (:value op))]
         (info jepsen.generator/*threads*)
         (let [process (:process op)
-              group-threads (get-key-threads process)]
-          (info (str "group threads " process " " group-threads))
+              key-threads (get-key-threads process)]
+          (info (str "key threads " process " " key-threads))
+          ;; 当前组的key的绑定
+          (let [last-key (get-group-key process)]
+            ;; 初始化或更新key
+            (info "last-key is " last-key)
+            (if (or (nil? last-key) (not (= last-key id)))
+              (let [_ (reset! session nil)
+                    _ (set-group-key process id)]
+                (doseq [x-threads key-threads]
+                  (update-session x-threads nil)))))
           ;; causal session 的创建
-          (if (nil? @session)
+          (if (or (nil? @session) (nil? (get-session process)))
             ;; 若当前client没有session，则为其创建一个session
             (let [new-session (m/start-causal-session client)
                   _   (update-session process new-session)
                   _   (reset! session new-session)]       ;为当前的client开启一个causal session
               ))
           ; session 的输出
-          ;(doseq [thread group-threads]
+          ;(doseq [thread key-threads]
           ;  (let [session (get-session thread)]
           ;    (if (nil? session)
           ;      (info (str "thread " thread " session is none"))
           ;      (info (str "thread " thread " " session)))))
           ;; causal session 的同步
           ;; TODO: 我觉得这里可能会死锁
-          (doseq [friend-process group-threads]
+          (doseq [friend-process key-threads]
             (if-not (= process friend-process)
               (let [friend-session (get-session friend-process)]
                 (if-not (nil? friend-session)

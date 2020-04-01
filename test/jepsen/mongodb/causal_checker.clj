@@ -161,7 +161,7 @@
 (def group-size (atom 1))                                   ; 每一组的进程数
 (def group-count (atom 1))                                  ; 一共有多少组
 (def group-threads (atom []))                               ; 每组对应的进程
-
+(def group-keys (atom []))                                  ; 每组对应的key
 
 (defn process->thread                                       ; 根据mod关系，得到process对应的线程
   [process]
@@ -175,7 +175,8 @@
   (println "clients-per-key " @clients-per-key)
   (println "group-size" @group-size)
   (println "group-count" @group-count)
-  (println "group-threads" @group-threads))
+  (println "group-threads" @group-threads)
+  (println "group-keys" @group-keys))
 
 (defn reset-concurrency
   [n]
@@ -191,7 +192,8 @@
     (reset! group-count (quot thread-count @group-size)))
   (reset! group-threads (->> @threads
                              (partition @group-size)
-                             (mapv vec))))
+                             (mapv vec)))
+  (reset! group-keys (vec (take @group-count (cycle [nil])))))
 
 (defn update-session
   [process session]
@@ -208,6 +210,18 @@
   (let [thread (process->thread process)
         group (quot thread @group-size)]
     (nth @group-threads group)))
+
+(defn get-group-key
+  [process]
+  (let [thread (process->thread process)
+        group (quot thread @group-size)]
+    (nth @group-keys group)))
+
+(defn set-group-key
+  [process key]
+  (let [thread (process->thread process)
+        group (quot thread @group-size)]
+    (reset! group-keys (assoc @group-keys group key))))
 
 (defn syn-sessions
   [process]
