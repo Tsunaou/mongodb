@@ -9,7 +9,8 @@
              [op :as op]]
             [clojure.tools.logging :refer [info warn]]
             [clojure.pprint :refer [pprint]]
-            [jepsen.mongodb.core :as core]))
+            [jepsen.mongodb.core :as core]
+            [jepsen.mongodb.differentiated-generator :as diff]))
 
 (defprotocol Model
   (step [model op]))
@@ -125,7 +126,7 @@
 (defn cw9 [_ _] {:type :invoke, :f :write, :value 9})
 
 (def operations
-  [ri cw1 r cw2 r cw3 r cw4 r cw5 r cw6 r cw7 r cw8 r cw9 r])
+  [cw1 r cw2 r cw3 r cw4 r cw5 r cw6 r cw7 r cw8 r cw9 r])
 
 (defn shard-migration-gen []
   (gen/seq (cycle [(gen/sleep 10)
@@ -139,7 +140,7 @@
                    (gen/sleep 20)
                    {:type :info, :f :stop}])))
 
-(def clients-per-key 2)
+(def clients-per-key 20)
 
 (defn test [opts]
   {
@@ -156,7 +157,7 @@
    :generator (->> (independent/concurrent-generator
                      clients-per-key
                      (range)
-                     (fn [k] (gen/seq [ri cw1 r cw2 r cw3 r cw4 r cw5 r cw6 r cw7 r cw8 r cw9 r])))
+                     (fn [k] (gen/seq (diff/gen-diff {:read-cnt 30, :write-cnt 30}))))
                    (gen/stagger 1)
                    ;(gen/nemesis
                    ;  (gen/seq (cycle [(gen/sleep 10)

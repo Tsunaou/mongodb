@@ -561,18 +561,18 @@
           ;      (info (str "thread " thread " session is none"))
           ;      (info (str "thread " thread " " session)))))
           ;; causal session 的同步
-          ;; TODO: 我觉得这里可能会死锁
-          (doseq [friend-process key-threads]
-            (if-not (= process friend-process)
-              (let [friend-session (get-session friend-process)]
-                (if-not (nil? friend-session)
-                  (let [friend-optime (m/operationTime friend-session)
-                        friend-clustertime (m/clusterTime friend-session)]
-                    ;(info (str "optime " friend-optime))
-                    ;(info (str "clustertime " friend-clustertime))
-                    ;(info (str "session " @session))
-                    (m/advanceOperationTime @session friend-optime)
-                    (m/advanceClusterTime @session friend-clustertime))))))
+          ;; TODO: ~~我觉得这里可能会死锁~~(根据MongoDB的文档，不需要手动同步)
+          ;(doseq [friend-process key-threads]
+          ;  (if-not (= process friend-process)
+          ;    (let [friend-session (get-session friend-process)]
+          ;      (if-not (nil? friend-session)
+          ;        (let [friend-optime (m/operationTime friend-session)
+          ;              friend-clustertime (m/clusterTime friend-session)]
+          ;          ;(info (str "optime " friend-optime))
+          ;          ;(info (str "clustertime " friend-clustertime))
+          ;          ;(info (str "session " @session))
+          ;          (m/advanceOperationTime @session friend-optime)
+          ;          (m/advanceClusterTime @session friend-clustertime))))))
 
               )
         ;(case (:f op)
