@@ -649,7 +649,7 @@
   [opts]
   (let [concur (:concurrency opts)
         concur-before @concurrency
-        c-per-key (:clients-per-key (causal/test clients-per-key))
+        c-per-key (:clients-per-key opts)
         node "control node"]
     (info (str "on node" node " after"))
     (if (= concur concur-before)

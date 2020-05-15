@@ -106,6 +106,24 @@
     :parse-fn #(Long/parseLong %)
     :validate [pos? "Must be positive"]]
 
+   [nil "--write-counts OPERATIONS"
+    "How many write operations should be execute per key"
+    :default  25
+    :parse-fn #(Long/parseLong %)
+    :validate [pos? "Must be positive"]]
+
+   [nil "--read-counts OPERATIONS"
+    "How many read operations should be execute per key"
+    :default  25
+    :parse-fn #(Long/parseLong %)
+    :validate [pos? "Must be positive"]]
+
+   [nil "--clients-per-key CLIENTS"
+    "How many clients to execute operations per key"
+    :default  2
+    :parse-fn #(Long/parseLong %)
+    :validate [pos? "Must be positive"]]
+
    ["-w" "--write-concern LEVEL" "Write concern level"
     :default  :majority
     :parse-fn keyword

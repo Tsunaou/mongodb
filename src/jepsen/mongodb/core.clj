@@ -489,13 +489,15 @@
   (merge
    (assoc tests/noop-test
           :name      (str "mongo-" name
-                          "_wc_" (:write-concern opts)
-                          "_rc_" (:read-concern opts)
-                          "_ti_" (:time-limit opts)
-                          "_sd_" (:shard-count opts)
-                          "_cry_" (:concurrency opts)
-                          "_se-" (:storage-engine opts)
-                          "_pv-" (:protocol-version opts))
+                          "-wc-" (:write-concern opts)
+                          "-rc-" (:read-concern opts)
+                          "-ti-" (:time-limit opts)
+                          "-sd-" (:shard-count opts)
+                          "-cry-" (:concurrency opts)
+                          "-wn-" (:write-counts opts)
+                          "-rn-" (:read-counts opts)
+                          "-cpk-" (:clients-per-key opts)
+                          )
           :os        debian/os
           :db        (db (:clock opts) (:tarball opts))
           ;:nemesis   (nemesis/compose
