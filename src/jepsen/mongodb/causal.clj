@@ -140,30 +140,34 @@
                    (gen/sleep 20)
                    {:type :info, :f :stop}])))
 
-(def clients-per-key 20)
-
 (defn test [opts]
-  {
-   :clients-per-key clients-per-key
-   :checker   (checker/compose
-                {:causal   (independent/checker (check (causal-register)))
-                 ;:timeline (timeline/html)
-                 ;:graph    (checker/latency-graph)
-                 ;:perf     (checker/perf)
-                 ;:clock    (checker/clock-plot)
-                 :stats    (checker/stats)
-                 :unhandled-exceptions (checker/unhandled-exceptions)
-                 })
-   :generator (->> (independent/concurrent-generator
-                     clients-per-key
-                     (range)
-                     (fn [k] (gen/seq (diff/gen-diff {:read-cnt 30, :write-cnt 30}))))
-                   (gen/stagger 1)
-                   ;(gen/nemesis
-                   ;  (gen/seq (cycle [(gen/sleep 10)
-                   ;                   {:type :info, :f :start}
-                   ;                   (gen/sleep 10)
-                   ;                   {:type :info, :f :stop}])))
-                   (gen/nemesis
-                     (shard-migration-gen))
-                   (gen/time-limit (:time-limit opts)))})
+  (let [clients-per-key (:clients-per-key opts)
+        write-counts (:write-counts opts)
+        read-counts (:read-counts opts)
+        test-print (println (str "Clients-Per-Key " clients-per-key "wcnt " write-counts "rcnt " read-counts ))
+        test-opts (info "test[opts]" opts)]
+    {
+     :clients-per-key clients-per-key
+     :checker   (checker/compose
+                  {:causal   (independent/checker (check (causal-register)))
+                   :timeline (timeline/html)
+                   :graph    (checker/latency-graph)
+                   :perf     (checker/perf)
+                   :clock    (checker/clock-plot)
+                   :stats    (checker/stats)
+                   :unhandled-exceptions (checker/unhandled-exceptions)
+                   })
+     :generator (->> (independent/concurrent-generator
+                       clients-per-key
+                       (range)
+                       (fn [k] (gen/seq (diff/gen-diff {:read-cnt (:read-counts opts), :write-cnt (:write-counts opts)}))))
+                     (gen/stagger 1)
+                     ;(gen/nemesis
+                     ;  (gen/seq (cycle [(gen/sleep 10)
+                     ;                   {:type :info, :f :start}
+                     ;                   (gen/sleep 10)
+                     ;                   {:type :info, :f :stop}])))
+                     (gen/nemesis
+                       (shard-migration-gen))
+                     (gen/time-limit (:time-limit opts)))}
+    ))
