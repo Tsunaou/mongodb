@@ -497,6 +497,7 @@
                           "-wn-" (:write-counts opts)
                           "-rn-" (:read-counts opts)
                           "-cpk-" (:clients-per-key opts)
+                          "-no-nemesis"
                           )
           :os        debian/os
           :db        (db (:clock opts) (:tarball opts))
@@ -509,18 +510,19 @@
           ;             (primary-divergence-nemesis (:clock opts))
           ;             #{:compare-dbhashes} dbhash/nemesis})
           ;:nemesis (nt/clock-nemesis)
-          :nemesis (nemesis/partition-halves)
+          ;:nemesis (nemesis/partition-halves)
           :generator (gen/phases
                       (->> (:generator opts)
-                           (gen/nemesis (primary-divergence-gen))
+                           ;(gen/nemesis (primary-divergence-gen))
                            (gen/time-limit (:time-limit opts)))
-                      (gen/nemesis
-                       (gen/once {:type :info, :f :stop, :value nil}))
+                      ;(gen/nemesis
+                      ; (gen/once {:type :info, :f :stop, :value nil}))
                       (gen/sleep 40)
                       (gen/clients (:final-generator opts))
                       ;; Generate the :compare-dbhashes op at the very
                       ;; end of the test.
-                      (gen/nemesis dbhash/gen))
+                      ;(gen/nemesis dbhash/gen)
+                      )
           :client     (:client opts)
           :checker    (checker/compose
                        {:base (:checker opts)
