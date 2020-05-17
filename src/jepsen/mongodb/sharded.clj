@@ -666,7 +666,7 @@
   (info "causal/test opts" (causal/test opts))
   (info "others" {:concurrency (count (:nodes opts))
                   :client (causal-client opts)
-                  :nemesis (nemesis/partition-random-halves)
+                  ;:nemesis (nemesis/partition-random-halves)
                   :os debian/os
                   :db (db (:clock opts)                                ;  TODO: 这个db是个啥
                           (:tarball opts)
@@ -684,7 +684,7 @@
       {
        ;:concurrency (count (:nodes opts))
        :client (causal-client opts)
-       :nemesis (sharded-nemesis)
+       ;:nemesis (sharded-nemesis)
        :os debian/os
        :db (db (:clock opts)
                (:tarball opts)

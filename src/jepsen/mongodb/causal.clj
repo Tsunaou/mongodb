@@ -138,7 +138,8 @@
                    (gen/sleep 0.5)
                    {:type :info, :f :start}
                    (gen/sleep 20)
-                   {:type :info, :f :stop}])))
+                   {:type :info, :f :stop}
+                   ])))
 
 (defn test [opts]
   (let [clients-per-key (:clients-per-key opts)
@@ -161,13 +162,13 @@
                        clients-per-key
                        (range)
                        (fn [k] (gen/seq (diff/gen-diff {:read-cnt (:read-counts opts), :write-cnt (:write-counts opts)}))))
-                     (gen/stagger 1)
+                     ;(gen/stagger 1)
                      ;(gen/nemesis
                      ;  (gen/seq (cycle [(gen/sleep 10)
                      ;                   {:type :info, :f :start}
                      ;                   (gen/sleep 10)
                      ;                   {:type :info, :f :stop}])))
-                     (gen/nemesis
-                       (shard-migration-gen))
+                     ;(gen/nemesis
+                     ;  (shard-migration-gen))
                      (gen/time-limit (:time-limit opts)))}
     ))
