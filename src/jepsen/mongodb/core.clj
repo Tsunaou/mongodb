@@ -497,7 +497,8 @@
                           "-wn-" (:write-counts opts)
                           "-rn-" (:read-counts opts)
                           "-cpk-" (:clients-per-key opts)
-                          "-no-nemesis"
+                          ;"-no-nemesis"
+                          "-node-failure"
                           )
           :os        debian/os
           :db        (db (:clock opts) (:tarball opts))

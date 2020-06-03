@@ -21,7 +21,9 @@
              [generator :as gen]
              [independent :as independent]
              [nemesis :as nemesis]
-             [util    :as util]]
+             [util      :as util :refer [meh
+                                         timeout
+                                         relative-time-nanos]]]
             ;[jepsen.tests.causal :as causal]
             [jepsen.nemesis.combined :as combined]
             [jepsen.nemesis.time :as ne-time]
@@ -409,6 +411,66 @@
    {#{:start :stop} (nemesis/partition-random-halves)
     #{:move} (balancer-nemesis nil)}))
 
+(defn start!
+  "Starts DB."
+  [node test]
+  (info node "starting node")
+  (let [cdb (:db test)]
+    (cu/signal! "mongo" :CONT)
+    ))
+
+
+(defn stop!
+  "Stops DB."
+  [node test]
+  (info node "stopping node")
+  (let [cdb (:db test)]
+    (cu/signal! "mongo" :STOP)
+    ))
+
+(defn node-tempstop-continue
+  [targeter start! stop!]
+  (let [nodes (atom nil)]
+    (reify nemesis/Nemesis
+      (setup! [this test] this)
+
+      (invoke! [this test op]
+        (locking nodes
+          (assoc op :type :info, :value
+                    (case (:f op)
+                      :continue (let [ns (:nodes test)
+                                   ns (try (targeter test ns)
+                                           (catch clojure.lang.ArityException e
+                                             (targeter ns)))
+                                   ns (util/coll ns)]
+                               (if ns
+                                 (if (compare-and-set! nodes nil ns)
+                                   (c/on-many ns (start! test c/*host*))
+                                   (str "nemesis already disrupting "
+                                        (pr-str @nodes)))
+                                 :no-target))
+                      :tempstop (if-let [ns @nodes]
+                              (let [value (c/on-many ns (stop! test c/*host*))]
+                                (reset! nodes nil)
+                                value)
+                              :not-started)))))
+
+      (teardown! [this test]))))
+
+(defn killer
+  "Kills a random node on start, restarts it on stop."
+  []
+  (node-tempstop-continue
+    rand-nth
+    (fn start [test node] (stop! node test))
+    (fn stop  [test node] (start! node test))))
+
+(defn sharded-nemesis_node []
+  (nemesis/compose
+    {#{:start :stop} (nemesis/partition-random-halves)
+     #{:continue :tempstop} (killer)
+     #{:move} (balancer-nemesis nil)}))
+
 (defn shard-migration-gen []
   (gen/seq (cycle [(gen/sleep 10)
                    {:type :info, :f :move}
@@ -685,6 +747,7 @@
        ;:concurrency (count (:nodes opts))
        :client (causal-client opts)
        ;:nemesis (sharded-nemesis)
+       :nemesis (sharded-nemesis_node)
        :os debian/os
        :db (db (:clock opts)
                (:tarball opts)
