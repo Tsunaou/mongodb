@@ -16,4 +16,4 @@ pom.xml.asc
 .lein-failures
 *~
 .*.swp
-/store
+/store-100w-200r-no-nemesis
