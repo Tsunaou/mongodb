@@ -144,6 +144,9 @@
                    (gen/sleep 20)
                    {:type :info, :f :continue}])))
 
+(defn shard-migration-gen-sleep []
+  (gen/seq (cycle [(gen/sleep 30)])))
+
 (defn test [opts]
   (let [clients-per-key (:clients-per-key opts)
         write-counts (:write-counts opts)
@@ -164,7 +167,7 @@
      :generator (->> (independent/concurrent-generator
                        clients-per-key
                        (range)
-                       (fn [k] (gen/seq (diff/gen-diff {:read-cnt (:read-counts opts), :write-cnt (:write-counts opts)}))))
+                       (fn [k] (gen/seq (diff/gen-diff-debug {:read-cnt (:read-counts opts), :write-cnt (:write-counts opts)}))))
                      (gen/stagger 1)
                      ;(gen/nemesis
                      ;  (gen/seq (cycle [(gen/sleep 10)

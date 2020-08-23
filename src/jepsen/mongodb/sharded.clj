@@ -596,7 +596,7 @@
     (core/with-errors op #{read}
       (let [id    (key (:value op))
             value (val (:value op))]
-        (info jepsen.generator/*threads*)
+        ;(info jepsen.generator/*threads*)
         (let [process (:process op)
               key-threads (get-key-threads process)]
           (info (str "key threads " process " " key-threads))
@@ -614,7 +614,8 @@
             ;; 若当前client没有session，则为其创建一个session
             (let [new-session (m/start-causal-session client)
                   _   (update-session process new-session)
-                  _   (reset! session new-session)]       ;为当前的client开启一个causal session
+                  _   (reset! session new-session)
+                  _   (reset! last-optime nil)]       ;为当前的client开启一个causal session
               ))
           ; session 的输出
           ;(doseq [thread key-threads]
@@ -747,6 +748,7 @@
        ;:concurrency (count (:nodes opts))
        :client (causal-client opts)
        ;:nemesis (sharded-nemesis)
+       ; TODO:如果不作用nemesis，就注释掉
        :nemesis (sharded-nemesis_node)
        :os debian/os
        :db (db (:clock opts)

@@ -26,3 +26,18 @@
 
 (gen-diff {:read-cnt 15, :write-cnt 15})
 
+(defn same-pool
+  [pool-size]
+  (take pool-size (cycle [1])))
+
+(defn gen-diff-debug
+  "负责生成满足Differentiated Histories的先写后读的operations"
+  [{:keys [read-cnt write-cnt]}]
+  (let [pools (same-pool write-cnt)
+        reads (repeat read-cnt r)
+        writes (map (partial cw nil nil) pools)]
+    (vec (concat writes reads))))
+
+(let [ops (gen-diff-debug {:read-cnt 15, :write-cnt 15})]
+  (doseq [op ops]
+    (println (op nil nil))))
