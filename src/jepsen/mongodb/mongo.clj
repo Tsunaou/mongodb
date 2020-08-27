@@ -166,26 +166,10 @@
                                 true                   v)))
                  {}))))
 
-(defn create-collection!
-  "Create a collection in a database."
-  [^MongoDatabase db collection-name]
-  (.createCollection db collection-name))
-
-(defn drop-collection!
-  "Drops a collection."
-  [^MongoCollection collection]
-  (.dropCollection collection))
-
 (defn parse-result
   "Parses a command's result into a Clojure data structure."
   [doc]
   (document->map doc))
-
-(defn iterable-seq
-  "Turns a MongoIterable into a seq."
-  ; TODO: what is a seq?
-  [^MongoIterable i]
-  (-> i .iterator iterator-seq))
 
 (defn run-command!
   "Runs an arbitrary command on a database. Command is a flat list of kv pairs,
@@ -206,12 +190,6 @@
   [client & command]
   (apply run-command! (db client "admin") command))
 
-(defn find-all
-  "Finds all docs in a collection."
-  [^MongoCollection coll]
-  (->> coll
-       (.find)
-       (map document->map)))
 
 (defn find-one
   "Find a document by ID.
@@ -230,16 +208,6 @@
        .first
        document->map)))
 
-(defn read-with-find-and-modify
-  "Perform a read of a document by ID with findAndModify."
-  [^MongoCollection coll id]
-  (-> coll
-      (with-write-concern :majority)
-      (.findOneAndUpdate (Filters/eq "_id" id)
-                         (Updates/inc "_dummy_field" 1)
-                         (-> (FindOneAndUpdateOptions.)
-                             (.returnDocument ReturnDocument/AFTER))) ;Set whether to return the document before it was updated / inserted or after
-      document->map))
 
 (defn update-result->map
   "Converts an update result to a clojure map."
@@ -249,29 +217,6 @@
                      (.getModifiedCount r))
    :upserted-id    (.getUpsertedId r)
    :acknowledged?  (.wasAcknowledged r)})
-
-(defn insert!
-  "Inserts a document."
-  [^MongoCollection coll doc]
-  (-> coll
-      (.insertOne (document doc))))
-
-(defn replace!
-  "Replace a document by a document's :_id."
-  [^MongoCollection coll doc]
-  (-> coll
-      (.replaceOne (Filters/eq "_id" (:_id doc))
-                   (document doc))
-      update-result->map))
-
-(defn cas!
-  "Atomically replace doc with doc' in coll."
-  ;; TODO:奇怪，cas本意不是compared-and-set么？
-  [^MongoCollection coll doc doc']
-  (-> coll
-      (.replaceOne (document doc)
-                   (document doc'))
-      update-result->map))
 
 (defn upsert!
   "Ensures the existence of the given document, a map with at minimum an :_id

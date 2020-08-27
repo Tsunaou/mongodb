@@ -270,108 +270,7 @@
                 (kill-all! test node)
                 (finally (mdbutil/snarf-logs! test node)))))))))
 
-;; Client for Set
-(defrecord Client [db-name coll-name read-concern write-concern client coll]
-  client/Client
-  (open! [this test node]
-    (let [client (m/client node)
-          coll   (-> client
-                     (m/db db-name)
-                     (m/collection coll-name)
-                     (m/with-read-concern read-concern)
-                     (m/with-write-concern write-concern))]
-      (assoc this :client client :coll coll)))
 
-  (invoke! [this test op]
-    (core/with-errors op #{:read}
-      (case (:f op)
-        :add (let [res (m/insert! coll {:value (:value op)})]
-               (reset! (:last-op-id test) (:value op))
-               (assoc op :type :ok))
-        :read (assoc op
-                     :type :ok
-                     :value (->> coll
-                                 m/find-all
-                                 (map :value)
-                                 (into (sorted-set)))))))
-
-  (close! [this test]
-    (.close ^java.io.Closeable client))
-
-  (setup! [_ _])
-  (teardown! [_ _]))
-
-(defn set-client
-  [opts]
-  (Client. "jepsen" "sharded"
-           (:read-concern opts)
-           (:write-concern opts)
-           nil nil))
-
-;; Client for Register
-(defrecord RegisterClient [db-name
-                           coll-name
-                           read-concern
-                           write-concern
-                           read-with-find-and-modify
-                           client
-                           coll]
-  client/Client
-  (open! [this test node]
-    (let [client (m/client node)
-          coll   (-> client
-                     (m/db db-name)
-                     (m/collection coll-name)
-                     (m/with-read-concern read-concern)
-                     (m/with-write-concern write-concern))]
-      (assoc this :client client :coll coll)))
-
-  (invoke! [this test op]
-    (core/with-errors op #{:read}
-      (let [id    (key (:value op))
-            value (val (:value op))]
-        (reset! (:last-op-id test) id)
-        (case (:f op)
-          :read (let [doc (if read-with-find-and-modify
-                            ;; CAS read
-                            (m/read-with-find-and-modify coll id)
-                            ;; Normal read
-                            (m/find-one coll id))]
-                  (assoc op
-                         :type  :ok
-                         :value (independent/tuple id (:value doc))))
-
-          :write (let [res (m/upsert! coll {:_id id, :value value})]
-                   ;; Note that modified-count could be zero, depending on the
-                   ;; storage engine, if you perform a write the same as the
-                   ;; current value.
-                   (assert (< (:matched-count res) 2))
-                   (assoc op :type :ok))
-
-          :cas   (let [[value value'] value
-                       res (m/cas! coll
-                                   {:_id id, :value value}
-                                   {:_id id, :value value'})]
-                   ;; Check how many documents we actually modified.
-                   (condp = (:matched-count res)
-                     0 (assoc op :type :fail)
-                     1 (assoc op :type :ok)
-                     true (assoc op :type :info
-                                 :error (str "CAS: matched too many docs! "
-                                             res))))))))
-
-  (close! [this test]
-    (.close ^java.io.Closeable client))
-
-  (setup! [_ _])
-  (teardown! [_ _]))
-
-(defn register-client [opts]
-  (RegisterClient. "jepsen" "sharded"
-           (:read-concern opts)
-           (:write-concern opts)
-           (:read-with-find-and-modify opts)
-           nil nil))
 
 (defn maybe-conn
   "Tries to connect to a router. Returns the conn or nil."
@@ -405,11 +304,6 @@
                                     :find {:_id id}
                                     :to dest-replset)
                   (assoc op :value [:moving-chunk-with id :to dest-replset]))))))
-
-(defn sharded-nemesis []
-  (nemesis/compose
-   {#{:start :stop} (nemesis/partition-random-halves)
-    #{:move} (balancer-nemesis nil)}))
 
 (defn start!
   "Starts DB."
@@ -465,7 +359,7 @@
     (fn start [test node] (stop! node test))
     (fn stop  [test node] (start! node test))))
 
-(defn sharded-nemesis_node []
+(defn sharded-nemesis-node []
   (nemesis/compose
     {#{:start :stop} (nemesis/partition-random-halves)
      #{:continue :tempstop} (killer)
@@ -487,83 +381,6 @@
   (assert
    (<= 1 (:shard-count opts))
    "Sharded tests must be run with a --shard-count of 1 or higher"))
-
-(defn set-test
-  "Tests against a sharded mongodb cluster. We insert documents against
-  the mongos router while inducing shard migrations and partitioning the
-  network."
-  [opts]
-  (ensure-shard-count opts)
-  (let [mongos-sem (Semaphore. (or (:mongos-count opts) (count (:nodes opts))))]
-    (core/mongodb-test
-     "sharded-set"
-     (merge
-      opts
-      {:client (set-client opts)
-       :nemesis (sharded-nemesis)
-       :last-op-id (atom nil)
-       :generator (gen/phases
-                   (->> (range)
-                        (map (fn [x] {:type :invoke, :f :add, :value x}))
-                        gen/seq
-                        (gen/stagger 1/2)
-                        (gen/nemesis (shard-migration-gen))
-                        (gen/time-limit (:time-limit opts)))
-                   (gen/nemesis
-                    (gen/once {:type :info, :f :stop, :value nil}))
-                   (gen/sleep 40)
-                   (gen/clients (gen/each
-                                 (gen/limit 2 {:type :invoke, :f :read, :value nil}))))
-       :db (db (:clock opts)
-               (:tarball opts)
-               {:mongos-sem  mongos-sem
-                :chunk-size  (:chunk-size opts)
-                :shard-count (:shard-count opts)})
-       :checker (checker/compose
-                 {:set (checker/set)
-                  :timeline (timeline/html)
-                  :perf (checker/perf)})}))))
-
-;; Generators
-(defn r   [_ _] {:type :invoke, :f :read})
-(defn w   [_ _] {:type :invoke, :f :write, :value (rand-int 5)})
-(defn cas [_ _] {:type :invoke, :f :cas, :value [(rand-int 5) (rand-int 5)]})
-
-(defn register-test
-  "Tests against a sharded mongodb cluster. We insert documents against
-  the mongos router while inducing shard migrations and partitioning the
-  network."
-  [opts]
-  (ensure-shard-count opts)
-  (let [mongos-sem (Semaphore. (or (:mongos-count opts) (count (:nodes opts))))]
-    (core/mongodb-test
-     "sharded-register"
-     (merge
-      opts
-      {:client (register-client opts)
-       :nemesis (sharded-nemesis)
-       :last-op-id (atom nil)
-       :generator (->> (independent/concurrent-generator
-                        10
-                        (range)
-                        (fn [k]
-                          (->> (gen/mix [w cas cas])
-                               (gen/reserve 5 (if (:no-reads opts)
-                                                (gen/mix [w cas cas])
-                                                r))
-                               (gen/time-limit (:key-time-limit opts)))))
-                       (gen/stagger 1)
-                       (gen/nemesis (shard-migration-gen))
-                       (gen/time-limit (:time-limit opts)))
-       :db (db (:clock opts)
-               (:tarball opts)
-               {:mongos-sem  mongos-sem
-                :chunk-size  (:chunk-size opts)
-                :shard-count (:shard-count opts)})
-       :checker (checker/compose
-                 {:linear  (independent/checker (checker/linearizable (model/cas-register)))
-                  :timeline (independent/checker (timeline/html))
-                  :perf     (checker/perf)})}))))
 
 ;;  用于Jepsen Causal测试的Client,实现了Client协议，有5阶段的生命周期
 (defrecord CausalClient [db-name
@@ -599,15 +416,17 @@
         ;(info jepsen.generator/*threads*)
         (let [process (:process op)
               key-threads (get-key-threads process)]
-          (info (str "key threads " process " " key-threads))
-          ;; 当前组的key的绑定
-          (let [last-key (get-group-key process)]
-            ;; 初始化或更新key
-            (info "last-key is " last-key)
-            (if (or (nil? last-key) (not (= last-key id)))
-              (let [_ (reset! session nil)
+          ;          (info (str "key threads " process " " key-threads))
+            ;          ;; 当前组的key的绑定
+            (let [last-key (get-group-key process)]
+              ;; 初始化或更新key
+              (info "last-key is " last-key ", id is " id)
+              (if (or (nil? last-key) (not (= last-key id)))
+                ;; TODO: 为啥要切换
+                (let [_ (reset! session nil)
                     _ (set-group-key process id)]
                 (doseq [x-threads key-threads]
+                  (info "Update session " x-threads " nil")
                   (update-session x-threads nil)))))
           ;; causal session 的创建
           (if (or (nil? @session) (nil? (get-session process)))
@@ -638,11 +457,7 @@
           ;          (m/advanceClusterTime @session friend-clustertime))))))
 
               )
-        ;(case (:f op)
-        ;  :read-init ()
-        ;  :read ()
-        ;  :write ()
-        ;  )
+
         (case (:f op)
           :read-init (let [doc (m/find-one @session coll id)
                            ;; Set the value to 0 (init value for BEGH checker)
@@ -749,7 +564,7 @@
        :client (causal-client opts)
        ;:nemesis (sharded-nemesis)
        ; TODO:如果不作用nemesis，就注释掉
-       :nemesis (sharded-nemesis_node)
+       ;:nemesis (sharded-nemesis-node)
        :os debian/os
        :db (db (:clock opts)
                (:tarball opts)

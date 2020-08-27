@@ -331,9 +331,11 @@
 
        ; A network error is indeterminate
        (catch com.mongodb.MongoSocketReadException e#
+         (info e#)
          (assoc ~op :type error-type# :error :socket-read))
 
        (catch com.mongodb.MongoSocketReadTimeoutException e#
+         (info e#)
          (assoc ~op :type error-type# :error :socket-read)))))
 
 (defn kill-nem
