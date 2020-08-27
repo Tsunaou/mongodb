@@ -9,12 +9,9 @@
             [clojure.tools.logging :refer :all]
             [clojure.string :as str]
             [jepsen.mongodb [core :as m]
-                            [document-cas :as dc]
                             [faketime :as faketime]
                             [mongo :as client]
                             [net :as mnet]
-                            [read-concern-majority :as rcm]
-                            [set :as set]
                             [time :as mt]
                             [sharded :as sharded]]
             [jepsen [cli :as jc]
@@ -27,12 +24,7 @@
 
 ;定义测试的类型
 (def ^:private test-names
-  {"set" set/test
-   "register" dc/test
-   "read-concern-majority" rcm/test
-   "causal-register" sharded/causal-test
-   "sharded-set" sharded/set-test
-   "sharded-register" sharded/register-test})
+  {"causal-register" sharded/causal-test})
 
 ;定义测试机器的Clock
 (def ^:private clock-skew-mechs
@@ -148,8 +140,8 @@
     :validate [(complement neg?) "Must be non-negative"]]
 
    ["-t" "--test TEST-NAME" "Test to run"
-    :default      set/test
-    :default-desc "set"
+    :default      sharded/causal-test
+    :default-desc "causal-register"
     :parse-fn     test-names
     :validate     [identity (jc/one-of test-names)]]
 

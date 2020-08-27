@@ -128,6 +128,51 @@
 (def operations
   [cw1 r cw2 r cw3 r cw4 r cw5 r cw6 r cw7 r cw8 r cw9 r])
 
+(defn rx   [_ _] {:type :invoke, :f :read, :value (independent/tuple (rand-int 5) nil)})
+(defn wx1 [_ _] {:type :invoke, :f :write, :value (independent/tuple (rand-int 5) (rand-int 5))})
+(defn wx2 [_ _] {:type :invoke, :f :write, :value (independent/tuple (rand-int 5) (rand-int 5))})
+(def xops [rx wx1 wx2])
+
+;(def keys (atom (vec (shuffle (vec (range 20))))))
+(def values (atom (vec (range 2000))))
+
+(defn tuple
+  "Constructs a kv tuple"
+  [k v]
+  (clojure.lang.MapEntry. k v))
+
+;(let [queue (atom (vec (shuffle (vec (range 20)))))]
+;  (dotimes [i (count @queue)]
+;    (let [item (peek @queue)]
+;      (println item)
+;      (swap! queue pop))))
+
+(defn next-value
+  []
+  (let [item (peek @values)]
+    (swap! values pop)
+    item))
+
+(defn ycsb-read
+  [key]
+  (fn [_ _] {:type :invoke, :f :read, :value (tuple key nil)}))
+
+(defn ycsb-write
+  [key value]
+  (fn [_ _] {:type :invoke, :f :write, :value (tuple key value)}))
+
+(defn ycsb-gen
+  [index]
+  (let [type (rand-int 2)
+        key (rand-int 20)]
+    (println (str "index is " index))
+    (case type
+      0 (ycsb-read key)
+      1 (let [value (next-value)]
+          (println (str "value is " value))
+          (ycsb-write key value)))))
+
+
 (defn shard-migration-gen []
   (gen/seq (cycle [(gen/sleep 10)
                    {:type :info, :f :move}
@@ -164,10 +209,23 @@
                    :stats    (checker/stats)
                    :unhandled-exceptions (checker/unhandled-exceptions)
                    })
-     :generator (->> (independent/concurrent-generator
-                       clients-per-key
-                       (range)
-                       (fn [k] (gen/seq (diff/gen-diff {:read-cnt (:read-counts opts), :write-cnt (:write-counts opts)}))))
+     ;:generator (->> (independent/concurrent-generator
+     ;                  clients-per-key
+     ;                  (range)
+     ;                  (fn [k] (gen/seq (diff/gen-diff {:read-cnt (:read-counts opts), :write-cnt (:write-counts opts)}))))
+     ;                (gen/stagger 1)
+     ;                ;(gen/nemesis
+     ;                ;  (gen/seq (cycle [(gen/sleep 10)
+     ;                ;                   {:type :info, :f :start}
+     ;                ;                   (gen/sleep 10)
+     ;                ;                   {:type :info, :f :stop}])))
+     ;                (gen/nemesis
+     ;                  ;(shard-migration-gen)
+     ;                  ; TODO:如果不作用nemesis，就用Sleeo
+     ;                  (shard-migration-gen-sleep)
+     ;                  )
+     ;                (gen/time-limit (:time-limit opts)))
+     :generator (->> (gen/seq (map ycsb-gen (range 2000)))
                      (gen/stagger 1)
                      ;(gen/nemesis
                      ;  (gen/seq (cycle [(gen/sleep 10)
@@ -179,5 +237,6 @@
                        ; TODO:如果不作用nemesis，就用Sleeo
                        (shard-migration-gen-sleep)
                        )
-                     (gen/time-limit (:time-limit opts)))}
+                     (gen/time-limit (:time-limit opts)))
+     }
     ))
