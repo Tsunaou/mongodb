@@ -10,8 +10,9 @@
             [clojure.tools.logging :refer [info warn]]
             [clojure.pprint :refer [pprint]]
             [jepsen.mongodb.core :as core]
-            [jepsen.mongodb.differentiated-generator :as diff]
-            [jepsen.mongodb.ycsb-generator :as ycsb]))
+            ;[jepsen.mongodb.differentiated-generator :as diff]
+            ;[jepsen.mongodb.ycsb-generator :as ycsb]
+            ))
 
 (defprotocol Model
   (step [model op]))

@@ -271,7 +271,6 @@
                 (finally (mdbutil/snarf-logs! test node)))))))))
 
 
-
 (defn maybe-conn
   "Tries to connect to a router. Returns the conn or nil."
   [node]
@@ -457,7 +456,6 @@
           ;          (m/advanceClusterTime @session friend-clustertime))))))
 
               )
-
         (case (:f op)
           :read-init (let [doc (m/find-one @session coll id)
                            ;; Set the value to 0 (init value for BEGH checker)
