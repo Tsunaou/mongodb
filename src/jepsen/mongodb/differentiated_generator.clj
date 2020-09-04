@@ -38,6 +38,6 @@
         writes (map (partial cw nil nil) pools)]
     (vec (concat writes reads))))
 
-(let [ops (gen-diff-debug {:read-cnt 15, :write-cnt 15})]
-  (doseq [op ops]
-    (println (op nil nil))))
+;(let [ops (gen-diff-debug {:read-cnt 15, :write-cnt 15})]
+;  (doseq [op ops]
+;    (println (op nil nil))))

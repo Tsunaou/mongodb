@@ -1,0 +1,355 @@
+2020-09-04 00:26:18,079{GMT}	INFO	[jepsen test runner] jepsen.core: Running test:
+ {:clients-per-key 5,
+ :remote {:session nil},
+ :read-concern :majority,
+ :concurrency 100,
+ :protocol-version 1,
+ :db
+ #object[jepsen.mongodb.sharded$db$reify__463 0x6baf25d7 "jepsen.mongodb.sharded$db$reify__463@6baf25d7"],
+ :working-dir "/opt/mongodb",
+ :leave-db-running? true,
+ :name
+ "mongo-causal-register-wc-:majority-rc-:majority-ti-180-sd-2-cry-100-wn-200-rn-200-cpk-5-node-failure",
+ :write-concern :majority,
+ :start-time
+ #object[org.joda.time.DateTime 0x7a2ab862 "2020-09-04T00:26:17.000+08:00"],
+ :username "mongodb",
+ :net
+ #object[jepsen.net$reify__5424 0x6b6eae52 "jepsen.net$reify__5424@6b6eae52"],
+ :client
+ {:db-name "jepsen",
+  :coll-name "causal-register",
+  :read-concern :majority,
+  :write-concern :majority,
+  :secondary-ok? nil,
+  :client nil,
+  :coll nil,
+  :session nil,
+  :last-optime nil},
+ :read-counts 200,
+ :barrier
+ #object[java.util.concurrent.CyclicBarrier 0x6c184d4d "java.util.concurrent.CyclicBarrier@6c184d4d"],
+ :virt :vm,
+ :ssh
+ {:username "root",
+  :password "XR.123456",
+  :strict-host-key-checking false,
+  :private-key-path nil},
+ :shard-count 2,
+ :checker
+ #object[jepsen.checker$compose$reify__4964 0x5489b1f7 "jepsen.checker$compose$reify__4964@5489b1f7"],
+ :nemesis
+ #object[jepsen.nemesis$reify__5525 0x1624775 "jepsen.nemesis$reify__5525@1624775"],
+ :bridge
+ {"120.55.194.98" "120.55.194.98:27117",
+  "120.55.192.167" "120.55.192.167:27117",
+  "47.97.201.212" "47.97.201.212:27117"},
+ :active-histories #<Atom@3b98b809: #{}>,
+ :nodes ["120.55.194.98" "120.55.192.167" "47.97.201.212"],
+ :test-count 1,
+ :generator
+ (gen/timelimit 180 (gen/concat [(gen/on #{:nemesis} (gen/seqone ((gen/delayfn #object[clojure.core$constantly$fn__5657 0x3fc7c734 "clojure.core$constantly$fn__5657@3fc7c734"] (gen/gvoid)) (gen/delayfn #object[clojure.core$constantly$fn__5657 0x3fc7c734 "clojure.core$constantly$fn__5657@3fc7c734"] (gen/gvoid)) (gen/delayfn #object[clojure.core$constantly$fn__5657 0x3fc7c734 "clojure.core$constantly$fn__5657@3fc7c734"] (gen/gvoid)) (gen/delayfn #object[clojure.core$constantly$fn__5657 0x3fc7c734 "clojure.core$constantly$fn__5657@3fc7c734"] (gen/gvoid)) (gen/delayfn #object[clojure.core$constantly$fn__5657 0x3fc7c734 "clojure.core$constantly$fn__5657@3fc7c734"] (gen/gvoid)) (gen/delayfn #object[clojure.core$constantly$fn__5657 0x3fc7c734 "clojure.core$constantly$fn__5657@3fc7c734"] (gen/gvoid)) (gen/delayfn #object[clojure.core$constantly$fn__5657 0x3fc7c734 "clojure.core$constantly$fn__5657@3fc7c734"] (gen/gvoid)) (gen/delayfn #object[clojure.core$constantly$fn__5657 0x3fc7c734 "clojure.core$constantly$fn__5657@3fc7c734"] (gen/gvoid))))) (gen/on #object[clojure.core$complement$fn__5654 0x460b50df "clojure.core$complement$fn__5654@460b50df"] (gen/delayfn #object[clojure.core$partial$fn__5824 0x1cf336fd "clojure.core$partial$fn__5824@1cf336fd"] (gen/seqone index is 0, key is 5, value is 1, (= value nil)false
+index is 1, key is 10, value is 1, (= value nil)false
+index is 2, key is 58, value is , (= value nil)true
+index is 3, key is 80, value is , (= value nil)true
+index is 4, key is 75, value is , (= value nil)true
+index is 5, key is 76, value is 1, (= value nil)false
+index is 6, key is 7, value is 1, (= value nil)false
+index is 7, key is 78, value is , (= value nil)true
+index is 8, key is 91, value is , (= value nil)true
+index is 9, key is 35, value is 1, (= value nil)false
+index is 10, key is 12, value is 1, (= value nil)false
+index is 11, key is 64, value is 1, (= value nil)false
+index is 12, key is 51, value is 1, (= value nil)false
+index is 13, key is 71, value is , (= value nil)true
+index is 14, key is 40, value is 1, (= value nil)false
+index is 15, key is 55, value is , (= value nil)true
+index is 16, key is 43, value is 1, (= value nil)false
+index is 17, key is 59, value is 1, (= value nil)false
+index is 18, key is 73, value is , (= value nil)true
+index is 19, key is 0, value is 2, (= value nil)false
+index is 20, key is 53, value is , (= value nil)true
+index is 21, key is 93, value is , (= value nil)true
+index is 22, key is 0, value is 3, (= value nil)false
+index is 23, key is 93, value is 2, (= value nil)false
+index is 24, key is 77, value is , (= value nil)true
+index is 25, key is 77, value is , (= value nil)true
+index is 26, key is 58, value is , (= value nil)true
+index is 27, key is 56, value is 1, (= value nil)false
+index is 28, key is 16, value is 1, (= value nil)false
+index is 29, key is 77, value is 1, (= value nil)false
+index is 30, key is 25, value is , (= value nil)true
+index is 31, key is 40, value is , (= value nil)true
+(#object[jepsen.mongodb.ycsb.ycsb_generator$ycsb_write$fn__237 0x1d0cac30 "jepsen.mongodb.ycsb.ycsb_generator$ycsb_write$fn__237@1d0cac30"] #object[jepsen.mongodb.ycsb.ycsb_generator$ycsb_write$fn__237 0x41ef1ea2 "jepsen.mongodb.ycsb.ycsb_generator$ycsb_write$fn__237@41ef1ea2"] #object[jepsen.mongodb.ycsb.ycsb_generator$ycsb_read$fn__234 0x5dfe23e8 "jepsen.mongodb.ycsb.ycsb_generator$ycsb_read$fn__234@5dfe23e8"] #object[jepsen.mongodb.ycsb.ycsb_generator$ycsb_read$fn__234 0x583fb274 "jepsen.mongodb.ycsb.ycsb_generator$ycsb_read$fn__234@583fb274"] #object[jepsen.mongodb.ycsb.ycsb_generator$ycsb_read$fn__234 0x202ae86f "jepsen.mongodb.ycsb.ycsb_generator$ycsb_read$fn__234@202ae86f"] #object[jepsen.mongodb.ycsb.ycsb_generator$ycsb_write$fn__237 0x1989e8c6 "jepsen.mongodb.ycsb.ycsb_generator$ycsb_write$fn__237@1989e8c6"] #object[jepsen.mongodb.ycsb.ycsb_generator$ycsb_write$fn__237 0x35c4697c "jepsen.mongodb.ycsb.ycsb_generator$ycsb_write$fn__237@35c4697c"] #object[jepsen.mongodb.ycsb.ycsb_generator$ycsb_read$fn__234 0x104dc1a2 "jepsen.mongodb.ycsb.ycsb_generator$ycsb_read$fn__234@104dc1a2"]))))])),
+ :tarball
+ "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1604-4.2.3.tgz",
+ :write-counts 200,
+ :os
+ #object[jepsen.os.debian.Debian 0xdab1f89 "jepsen.os.debian.Debian@dab1f89"],
+ :time-limit 180,
+ :chunk-size 64,
+ :key-time-limit 100,
+ :storage-engine "wiredTiger"}
+
+2020-09-04 00:26:19,884{GMT}	INFO	[jepsen node 120.55.192.167] jepsen.os.debian: 120.55.192.167 setting up debian
+2020-09-04 00:26:19,884{GMT}	INFO	[jepsen node 47.97.201.212] jepsen.os.debian: 47.97.201.212 setting up debian
+2020-09-04 00:26:19,884{GMT}	INFO	[jepsen node 120.55.194.98] jepsen.os.debian: 120.55.194.98 setting up debian
+2020-09-04 00:26:20,653{GMT}	INFO	[jepsen node 120.55.194.98] jepsen.os.debian: Installing #{libzip4}
+2020-09-04 00:26:20,698{GMT}	INFO	[jepsen node 47.97.201.212] jepsen.os.debian: Installing #{libzip4}
+2020-09-04 00:26:20,751{GMT}	INFO	[jepsen node 120.55.192.167] jepsen.os.debian: Installing #{libzip4}
+2020-09-04 00:26:21,818{GMT}	WARN	[jepsen node 120.55.194.98] jepsen.control: Encountered error with conn [:control "120.55.194.98"]; reopening
+java.lang.InterruptedException: sleep interrupted
+	at java.lang.Thread.sleep(Native Method) [na:1.8.0_265]
+	at clj_ssh.ssh$ssh_exec.invokeStatic(ssh.clj:690) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh$ssh_exec.invoke(ssh.clj:670) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh$ssh.invokeStatic(ssh.clj:723) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh$ssh.invoke(ssh.clj:699) ~[jepsen-0.1.17.jar:na]
+	at jepsen.control.SSHRemote.execute_BANG_(control.clj:351) ~[jepsen-0.1.17.jar:na]
+	at jepsen.control$ssh_STAR_$fn__2926.invoke(control.clj:172) [jepsen-0.1.17.jar:na]
+	at jepsen.control$ssh_STAR_.invokeStatic(control.clj:172) [jepsen-0.1.17.jar:na]
+	at jepsen.control$ssh_STAR_.invoke(control.clj:168) [jepsen-0.1.17.jar:na]
+	at jepsen.control$exec_STAR_.invokeStatic(control.clj:194) [jepsen-0.1.17.jar:na]
+	at jepsen.control$exec_STAR_.doInvoke(control.clj:191) [jepsen-0.1.17.jar:na]
+	at clojure.lang.RestFn.applyTo(RestFn.java:137) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invokeStatic(core.clj:665) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invoke(core.clj:660) [clojure-1.10.0.jar:na]
+	at jepsen.control$exec.invokeStatic(control.clj:210) [jepsen-0.1.17.jar:na]
+	at jepsen.control$exec.doInvoke(control.clj:204) [jepsen-0.1.17.jar:na]
+	at clojure.lang.RestFn.invoke(RestFn.java:436) [clojure-1.10.0.jar:na]
+	at jepsen.net$reify__5424$fn__5426.invoke(net.clj:68) [jepsen-0.1.17.jar:na]
+	at jepsen.control$on_nodes$fn__3036.invoke(control.clj:450) [jepsen-0.1.17.jar:na]
+	at clojure.lang.AFn.applyToHelper(AFn.java:154) [clojure-1.10.0.jar:na]
+	at clojure.lang.AFn.applyTo(AFn.java:144) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invokeStatic(core.clj:665) [clojure-1.10.0.jar:na]
+	at clojure.core$with_bindings_STAR_.invokeStatic(core.clj:1973) [clojure-1.10.0.jar:na]
+	at clojure.core$with_bindings_STAR_.doInvoke(core.clj:1973) [clojure-1.10.0.jar:na]
+	at clojure.lang.RestFn.applyTo(RestFn.java:142) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invokeStatic(core.clj:669) [clojure-1.10.0.jar:na]
+	at clojure.core$bound_fn_STAR_$fn__5734.doInvoke(core.clj:2003) [clojure-1.10.0.jar:na]
+	at clojure.lang.RestFn.invoke(RestFn.java:408) [clojure-1.10.0.jar:na]
+	at dom_top.core$real_pmap_helper$build_thread__214$fn__215.invoke(core.clj:146) [jepsen-0.1.17.jar:na]
+	at clojure.lang.AFn.applyToHelper(AFn.java:152) [clojure-1.10.0.jar:na]
+	at clojure.lang.AFn.applyTo(AFn.java:144) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invokeStatic(core.clj:665) [clojure-1.10.0.jar:na]
+	at clojure.core$with_bindings_STAR_.invokeStatic(core.clj:1973) [clojure-1.10.0.jar:na]
+	at clojure.core$with_bindings_STAR_.doInvoke(core.clj:1973) [clojure-1.10.0.jar:na]
+	at clojure.lang.RestFn.invoke(RestFn.java:425) [clojure-1.10.0.jar:na]
+	at clojure.lang.AFn.applyToHelper(AFn.java:156) [clojure-1.10.0.jar:na]
+	at clojure.lang.RestFn.applyTo(RestFn.java:132) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invokeStatic(core.clj:669) [clojure-1.10.0.jar:na]
+	at clojure.core$bound_fn_STAR_$fn__5734.doInvoke(core.clj:2003) [clojure-1.10.0.jar:na]
+	at clojure.lang.RestFn.invoke(RestFn.java:397) [clojure-1.10.0.jar:na]
+	at clojure.lang.AFn.run(AFn.java:22) [clojure-1.10.0.jar:na]
+	at java.lang.Thread.run(Thread.java:748) [na:1.8.0_265]
+2020-09-04 00:26:22,016{GMT}	INFO	[jepsen test runner] jepsen.db: Tearing down DB
+2020-09-04 00:26:22,135{GMT}	WARN	[jepsen node 120.55.192.167] jepsen.control: Encountered error with conn [:control "120.55.192.167"]; reopening
+com.jcraft.jsch.JSchException: Packet corrupt
+	at com.jcraft.jsch.Session.start_discard(Session.java:1059) ~[jsch-0.1.53.jar:na]
+	at com.jcraft.jsch.Session.read(Session.java:929) ~[jsch-0.1.53.jar:na]
+	at com.jcraft.jsch.Session.connect(Session.java:309) ~[jsch-0.1.53.jar:na]
+	at com.jcraft.jsch.Session.connect(Session.java:183) ~[jsch-0.1.53.jar:na]
+	at clj_ssh.ssh$fn__2480.invokeStatic(ssh.clj:118) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh$fn__2480.invoke(ssh.clj:115) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh.protocols$fn__2438$G__2405__2447.invoke(protocols.clj:4) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh$connect.invokeStatic(ssh.clj:401) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh$connect.invoke(ssh.clj:397) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh$ssh.invokeStatic(ssh.clj:721) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh$ssh.invoke(ssh.clj:699) ~[jepsen-0.1.17.jar:na]
+	at jepsen.control.SSHRemote.execute_BANG_(control.clj:351) ~[jepsen-0.1.17.jar:na]
+	at jepsen.control$ssh_STAR_$fn__2926.invoke(control.clj:172) [jepsen-0.1.17.jar:na]
+	at jepsen.control$ssh_STAR_.invokeStatic(control.clj:172) [jepsen-0.1.17.jar:na]
+	at jepsen.control$ssh_STAR_.invoke(control.clj:168) [jepsen-0.1.17.jar:na]
+	at jepsen.control$exec_STAR_.invokeStatic(control.clj:194) [jepsen-0.1.17.jar:na]
+	at jepsen.control$exec_STAR_.doInvoke(control.clj:191) [jepsen-0.1.17.jar:na]
+	at clojure.lang.RestFn.applyTo(RestFn.java:137) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invokeStatic(core.clj:665) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invoke(core.clj:660) [clojure-1.10.0.jar:na]
+	at jepsen.control$exec.invokeStatic(control.clj:210) [jepsen-0.1.17.jar:na]
+	at jepsen.control$exec.doInvoke(control.clj:204) [jepsen-0.1.17.jar:na]
+	at clojure.lang.RestFn.invoke(RestFn.java:421) [clojure-1.10.0.jar:na]
+	at jepsen.control.util$exists_QMARK_.invokeStatic(util.clj:22) [classes/:na]
+	at jepsen.control.util$exists_QMARK_.invoke(util.clj:19) [classes/:na]
+	at jepsen.control.util$stop_daemon_BANG_.invokeStatic(util.clj:296) [classes/:na]
+	at jepsen.control.util$stop_daemon_BANG_.invoke(util.clj:292) [classes/:na]
+	at jepsen.mongodb.sharded$kill_all_BANG_.invokeStatic(sharded.clj:167) [classes/:na]
+	at jepsen.mongodb.sharded$kill_all_BANG_.invoke(sharded.clj:165) [classes/:na]
+	at jepsen.mongodb.sharded$db$reify__463.teardown_BANG_(sharded.clj:267) [classes/:na]
+	at jepsen.db$fn__3057$G__3053__3061.invoke(db.clj:8) [jepsen-0.1.17.jar:na]
+	at jepsen.db$fn__3057$G__3052__3066.invoke(db.clj:8) [jepsen-0.1.17.jar:na]
+	at clojure.core$partial$fn__5824.invoke(core.clj:2625) [clojure-1.10.0.jar:na]
+	at jepsen.control$on_nodes$fn__3036.invoke(control.clj:450) [jepsen-0.1.17.jar:na]
+	at clojure.lang.AFn.applyToHelper(AFn.java:154) [clojure-1.10.0.jar:na]
+	at clojure.lang.AFn.applyTo(AFn.java:144) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invokeStatic(core.clj:665) [clojure-1.10.0.jar:na]
+	at clojure.core$with_bindings_STAR_.invokeStatic(core.clj:1973) [clojure-1.10.0.jar:na]
+	at clojure.core$with_bindings_STAR_.doInvoke(core.clj:1973) [clojure-1.10.0.jar:na]
+	at clojure.lang.RestFn.applyTo(RestFn.java:142) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invokeStatic(core.clj:669) [clojure-1.10.0.jar:na]
+	at clojure.core$bound_fn_STAR_$fn__5734.doInvoke(core.clj:2003) [clojure-1.10.0.jar:na]
+	at clojure.lang.RestFn.invoke(RestFn.java:408) [clojure-1.10.0.jar:na]
+	at dom_top.core$real_pmap_helper$build_thread__214$fn__215.invoke(core.clj:146) [jepsen-0.1.17.jar:na]
+	at clojure.lang.AFn.applyToHelper(AFn.java:152) [clojure-1.10.0.jar:na]
+	at clojure.lang.AFn.applyTo(AFn.java:144) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invokeStatic(core.clj:665) [clojure-1.10.0.jar:na]
+	at clojure.core$with_bindings_STAR_.invokeStatic(core.clj:1973) [clojure-1.10.0.jar:na]
+	at clojure.core$with_bindings_STAR_.doInvoke(core.clj:1973) [clojure-1.10.0.jar:na]
+	at clojure.lang.RestFn.invoke(RestFn.java:425) [clojure-1.10.0.jar:na]
+	at clojure.lang.AFn.applyToHelper(AFn.java:156) [clojure-1.10.0.jar:na]
+	at clojure.lang.RestFn.applyTo(RestFn.java:132) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invokeStatic(core.clj:669) [clojure-1.10.0.jar:na]
+	at clojure.core$bound_fn_STAR_$fn__5734.doInvoke(core.clj:2003) [clojure-1.10.0.jar:na]
+	at clojure.lang.RestFn.invoke(RestFn.java:397) [clojure-1.10.0.jar:na]
+	at clojure.lang.AFn.run(AFn.java:22) [clojure-1.10.0.jar:na]
+	at java.lang.Thread.run(Thread.java:748) [na:1.8.0_265]
+2020-09-04 00:26:22,217{GMT}	WARN	[jepsen node 47.97.201.212] jepsen.control: Encountered error with conn [:control "47.97.201.212"]; reopening
+com.jcraft.jsch.JSchException: Packet corrupt
+	at com.jcraft.jsch.Session.start_discard(Session.java:1059) ~[jsch-0.1.53.jar:na]
+	at com.jcraft.jsch.Session.read(Session.java:929) ~[jsch-0.1.53.jar:na]
+	at com.jcraft.jsch.Session.connect(Session.java:309) ~[jsch-0.1.53.jar:na]
+	at com.jcraft.jsch.Session.connect(Session.java:183) ~[jsch-0.1.53.jar:na]
+	at clj_ssh.ssh$fn__2480.invokeStatic(ssh.clj:118) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh$fn__2480.invoke(ssh.clj:115) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh.protocols$fn__2438$G__2405__2447.invoke(protocols.clj:4) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh$connect.invokeStatic(ssh.clj:401) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh$connect.invoke(ssh.clj:397) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh$ssh.invokeStatic(ssh.clj:721) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh$ssh.invoke(ssh.clj:699) ~[jepsen-0.1.17.jar:na]
+	at jepsen.control.SSHRemote.execute_BANG_(control.clj:351) ~[jepsen-0.1.17.jar:na]
+	at jepsen.control$ssh_STAR_$fn__2926.invoke(control.clj:172) [jepsen-0.1.17.jar:na]
+	at jepsen.control$ssh_STAR_.invokeStatic(control.clj:172) [jepsen-0.1.17.jar:na]
+	at jepsen.control$ssh_STAR_.invoke(control.clj:168) [jepsen-0.1.17.jar:na]
+	at jepsen.control$exec_STAR_.invokeStatic(control.clj:194) [jepsen-0.1.17.jar:na]
+	at jepsen.control$exec_STAR_.doInvoke(control.clj:191) [jepsen-0.1.17.jar:na]
+	at clojure.lang.RestFn.applyTo(RestFn.java:137) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invokeStatic(core.clj:665) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invoke(core.clj:660) [clojure-1.10.0.jar:na]
+	at jepsen.control$exec.invokeStatic(control.clj:210) [jepsen-0.1.17.jar:na]
+	at jepsen.control$exec.doInvoke(control.clj:204) [jepsen-0.1.17.jar:na]
+	at clojure.lang.RestFn.invoke(RestFn.java:421) [clojure-1.10.0.jar:na]
+	at jepsen.control.util$exists_QMARK_.invokeStatic(util.clj:22) [classes/:na]
+	at jepsen.control.util$exists_QMARK_.invoke(util.clj:19) [classes/:na]
+	at jepsen.control.util$stop_daemon_BANG_.invokeStatic(util.clj:296) [classes/:na]
+	at jepsen.control.util$stop_daemon_BANG_.invoke(util.clj:292) [classes/:na]
+	at jepsen.mongodb.sharded$kill_all_BANG_.invokeStatic(sharded.clj:167) [classes/:na]
+	at jepsen.mongodb.sharded$kill_all_BANG_.invoke(sharded.clj:165) [classes/:na]
+	at jepsen.mongodb.sharded$db$reify__463.teardown_BANG_(sharded.clj:267) [classes/:na]
+	at jepsen.db$fn__3057$G__3053__3061.invoke(db.clj:8) [jepsen-0.1.17.jar:na]
+	at jepsen.db$fn__3057$G__3052__3066.invoke(db.clj:8) [jepsen-0.1.17.jar:na]
+	at clojure.core$partial$fn__5824.invoke(core.clj:2625) [clojure-1.10.0.jar:na]
+	at jepsen.control$on_nodes$fn__3036.invoke(control.clj:450) [jepsen-0.1.17.jar:na]
+	at clojure.lang.AFn.applyToHelper(AFn.java:154) [clojure-1.10.0.jar:na]
+	at clojure.lang.AFn.applyTo(AFn.java:144) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invokeStatic(core.clj:665) [clojure-1.10.0.jar:na]
+	at clojure.core$with_bindings_STAR_.invokeStatic(core.clj:1973) [clojure-1.10.0.jar:na]
+	at clojure.core$with_bindings_STAR_.doInvoke(core.clj:1973) [clojure-1.10.0.jar:na]
+	at clojure.lang.RestFn.applyTo(RestFn.java:142) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invokeStatic(core.clj:669) [clojure-1.10.0.jar:na]
+	at clojure.core$bound_fn_STAR_$fn__5734.doInvoke(core.clj:2003) [clojure-1.10.0.jar:na]
+	at clojure.lang.RestFn.invoke(RestFn.java:408) [clojure-1.10.0.jar:na]
+	at dom_top.core$real_pmap_helper$build_thread__214$fn__215.invoke(core.clj:146) [jepsen-0.1.17.jar:na]
+	at clojure.lang.AFn.applyToHelper(AFn.java:152) [clojure-1.10.0.jar:na]
+	at clojure.lang.AFn.applyTo(AFn.java:144) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invokeStatic(core.clj:665) [clojure-1.10.0.jar:na]
+	at clojure.core$with_bindings_STAR_.invokeStatic(core.clj:1973) [clojure-1.10.0.jar:na]
+	at clojure.core$with_bindings_STAR_.doInvoke(core.clj:1973) [clojure-1.10.0.jar:na]
+	at clojure.lang.RestFn.invoke(RestFn.java:425) [clojure-1.10.0.jar:na]
+	at clojure.lang.AFn.applyToHelper(AFn.java:156) [clojure-1.10.0.jar:na]
+	at clojure.lang.RestFn.applyTo(RestFn.java:132) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invokeStatic(core.clj:669) [clojure-1.10.0.jar:na]
+	at clojure.core$bound_fn_STAR_$fn__5734.doInvoke(core.clj:2003) [clojure-1.10.0.jar:na]
+	at clojure.lang.RestFn.invoke(RestFn.java:397) [clojure-1.10.0.jar:na]
+	at clojure.lang.AFn.run(AFn.java:22) [clojure-1.10.0.jar:na]
+	at java.lang.Thread.run(Thread.java:748) [na:1.8.0_265]
+2020-09-04 00:26:24,779{GMT}	INFO	[jepsen test runner] jepsen.db: Setting up DB
+2020-09-04 00:26:24,899{GMT}	INFO	[clojure-agent-send-off-pool-0] jepsen.os.debian: Installing #{libc++1 libsnmp30}
+2020-09-04 00:26:24,907{GMT}	INFO	[clojure-agent-send-off-pool-2] jepsen.os.debian: Installing #{libc++1 libsnmp30}
+2020-09-04 00:26:24,911{GMT}	INFO	[clojure-agent-send-off-pool-1] jepsen.os.debian: Installing #{libc++1 libsnmp30}
+2020-09-04 00:26:29,376{GMT}	WARN	[clojure-agent-send-off-pool-2] jepsen.control: Encountered error with conn [:control "120.55.194.98"]; reopening
+java.lang.InterruptedException: sleep interrupted
+	at java.lang.Thread.sleep(Native Method) [na:1.8.0_265]
+	at clj_ssh.ssh$ssh_exec.invokeStatic(ssh.clj:690) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh$ssh_exec.invoke(ssh.clj:670) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh$ssh.invokeStatic(ssh.clj:723) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh$ssh.invoke(ssh.clj:699) ~[jepsen-0.1.17.jar:na]
+	at jepsen.control.SSHRemote.execute_BANG_(control.clj:351) ~[jepsen-0.1.17.jar:na]
+	at jepsen.control$ssh_STAR_$fn__2926.invoke(control.clj:172) [jepsen-0.1.17.jar:na]
+	at jepsen.control$ssh_STAR_.invokeStatic(control.clj:172) [jepsen-0.1.17.jar:na]
+	at jepsen.control$ssh_STAR_.invoke(control.clj:168) [jepsen-0.1.17.jar:na]
+	at jepsen.control$exec_STAR_.invokeStatic(control.clj:194) [jepsen-0.1.17.jar:na]
+	at jepsen.control$exec_STAR_.doInvoke(control.clj:191) [jepsen-0.1.17.jar:na]
+	at clojure.lang.RestFn.applyTo(RestFn.java:137) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invokeStatic(core.clj:665) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invoke(core.clj:660) [clojure-1.10.0.jar:na]
+	at jepsen.control$exec.invokeStatic(control.clj:210) [jepsen-0.1.17.jar:na]
+	at jepsen.control$exec.doInvoke(control.clj:204) [jepsen-0.1.17.jar:na]
+	at clojure.lang.RestFn.invoke(RestFn.java:512) [clojure-1.10.0.jar:na]
+	at jepsen.mongodb.dbutil$install_remote_tarball_BANG_.invokeStatic(dbutil.clj:78) [classes/:na]
+	at jepsen.mongodb.dbutil$install_remote_tarball_BANG_.invoke(dbutil.clj:64) [classes/:na]
+	at jepsen.mongodb.dbutil$install_binaries_BANG_.invokeStatic(dbutil.clj:114) [classes/:na]
+	at jepsen.mongodb.dbutil$install_binaries_BANG_.invoke(dbutil.clj:91) [classes/:na]
+	at jepsen.mongodb.dbutil$install_BANG_$fn__795.invoke(dbutil.clj:125) [classes/:na]
+	at jepsen.mongodb.dbutil$install_BANG_.invokeStatic(dbutil.clj:125) [classes/:na]
+	at jepsen.mongodb.dbutil$install_BANG_.invoke(dbutil.clj:116) [classes/:na]
+	at jepsen.mongodb.sharded$db$reify__463$fn__464.invoke(sharded.clj:192) [classes/:na]
+	at clojure.core$binding_conveyor_fn$fn__5739.invoke(core.clj:2030) [clojure-1.10.0.jar:na]
+	at clojure.lang.AFn.call(AFn.java:18) [clojure-1.10.0.jar:na]
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266) [na:1.8.0_265]
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149) [na:1.8.0_265]
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624) [na:1.8.0_265]
+	at java.lang.Thread.run(Thread.java:748) [na:1.8.0_265]
+2020-09-04 00:26:29,376{GMT}	WARN	[clojure-agent-send-off-pool-1] jepsen.control: Encountered error with conn [:control "47.97.201.212"]; reopening
+java.lang.InterruptedException: sleep interrupted
+	at java.lang.Thread.sleep(Native Method) [na:1.8.0_265]
+	at clj_ssh.ssh$ssh_exec.invokeStatic(ssh.clj:690) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh$ssh_exec.invoke(ssh.clj:670) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh$ssh.invokeStatic(ssh.clj:723) ~[jepsen-0.1.17.jar:na]
+	at clj_ssh.ssh$ssh.invoke(ssh.clj:699) ~[jepsen-0.1.17.jar:na]
+	at jepsen.control.SSHRemote.execute_BANG_(control.clj:351) ~[jepsen-0.1.17.jar:na]
+	at jepsen.control$ssh_STAR_$fn__2926.invoke(control.clj:172) [jepsen-0.1.17.jar:na]
+	at jepsen.control$ssh_STAR_.invokeStatic(control.clj:172) [jepsen-0.1.17.jar:na]
+	at jepsen.control$ssh_STAR_.invoke(control.clj:168) [jepsen-0.1.17.jar:na]
+	at jepsen.control$exec_STAR_.invokeStatic(control.clj:194) [jepsen-0.1.17.jar:na]
+	at jepsen.control$exec_STAR_.doInvoke(control.clj:191) [jepsen-0.1.17.jar:na]
+	at clojure.lang.RestFn.applyTo(RestFn.java:137) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invokeStatic(core.clj:665) [clojure-1.10.0.jar:na]
+	at clojure.core$apply.invoke(core.clj:660) [clojure-1.10.0.jar:na]
+	at jepsen.control$exec.invokeStatic(control.clj:210) [jepsen-0.1.17.jar:na]
+	at jepsen.control$exec.doInvoke(control.clj:204) [jepsen-0.1.17.jar:na]
+	at clojure.lang.RestFn.invoke(RestFn.java:512) [clojure-1.10.0.jar:na]
+	at jepsen.mongodb.dbutil$install_remote_tarball_BANG_.invokeStatic(dbutil.clj:78) [classes/:na]
+	at jepsen.mongodb.dbutil$install_remote_tarball_BANG_.invoke(dbutil.clj:64) [classes/:na]
+	at jepsen.mongodb.dbutil$install_binaries_BANG_.invokeStatic(dbutil.clj:114) [classes/:na]
+	at jepsen.mongodb.dbutil$install_binaries_BANG_.invoke(dbutil.clj:91) [classes/:na]
+	at jepsen.mongodb.dbutil$install_BANG_$fn__795.invoke(dbutil.clj:125) [classes/:na]
+	at jepsen.mongodb.dbutil$install_BANG_.invokeStatic(dbutil.clj:125) [classes/:na]
+	at jepsen.mongodb.dbutil$install_BANG_.invoke(dbutil.clj:116) [classes/:na]
+	at jepsen.mongodb.sharded$db$reify__463$fn__464.invoke(sharded.clj:192) [classes/:na]
+	at clojure.core$binding_conveyor_fn$fn__5739.invoke(core.clj:2030) [clojure-1.10.0.jar:na]
+	at clojure.lang.AFn.call(AFn.java:18) [clojure-1.10.0.jar:na]
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266) [na:1.8.0_265]
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149) [na:1.8.0_265]
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624) [na:1.8.0_265]
+	at java.lang.Thread.run(Thread.java:748) [na:1.8.0_265]
+2020-09-04 00:26:29,844{GMT}	WARN	[main] jepsen.core: Test crashed!
+java.lang.IllegalArgumentException: Cannot open <nil> as a Reader.
+	at clojure.java.io$fn__11490.invokeStatic(io.clj:288) ~[clojure-1.10.0.jar:na]
+	at clojure.java.io$fn__11490.invoke(io.clj:288) ~[clojure-1.10.0.jar:na]
+	at clojure.java.io$fn__11392$G__11368__11399.invoke(io.clj:69) ~[clojure-1.10.0.jar:na]
+	at clojure.java.io$reader.invokeStatic(io.clj:102) ~[clojure-1.10.0.jar:na]
+	at clojure.java.io$reader.doInvoke(io.clj:86) ~[clojure-1.10.0.jar:na]
+	at clojure.lang.RestFn.invoke(RestFn.java:410) ~[clojure-1.10.0.jar:na]
+	at clojure.lang.AFn.applyToHelper(AFn.java:154) ~[clojure-1.10.0.jar:na]
+	at clojure.lang.RestFn.applyTo(RestFn.java:132) ~[clojure-1.10.0.jar:na]
+	at clojure.core$apply.invokeStatic(core.clj:667) ~[clojure-1.10.0.jar:na]
+	at clojure.core$slurp.invokeStatic(core.clj:6942) ~[clojure-1.10.0.jar:na]
+	at clojure.core$slurp.doInvoke(core.clj:6942) ~[clojure-1.10.0.jar:na]
+	at clojure.lang.RestFn.invoke(RestFn.java:410) ~[clojure-1.10.0.jar:na]
+	at jepsen.mongodb.sharded$init_configsvr_BANG_.invokeStatic(sharded.clj:120) ~[classes/:na]
+	at jepsen.mongodb.sharded$init_configsvr_BANG_.invoke(sharded.clj:116) ~[classes/:na]
+	at jepsen.mongodb.sharded$db$reify__463$fn__464.invoke(sharded.clj:198) ~[classes/:na]
+	at clojure.core$binding_conveyor_fn$fn__5739.invoke(core.clj:2030) ~[clojure-1.10.0.jar:na]
+	at clojure.lang.AFn.call(AFn.java:18) ~[clojure-1.10.0.jar:na]
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266) ~[na:1.8.0_265]
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149) ~[na:1.8.0_265]
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624) ~[na:1.8.0_265]
+	at java.lang.Thread.run(Thread.java:748) ~[na:1.8.0_265]
