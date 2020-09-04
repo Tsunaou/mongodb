@@ -49,3 +49,16 @@
         new-session (rand-int 10)
         _   (reset! session new-session)    ;为当前的client开启一个causal session
         _   (reset! last-optime nil)]))
+
+
+(def map-nemesis
+  (let [x (rand-int 2)]
+    (if (= 0 x)
+      {:nemesis "Nemesis"}
+      nil)))
+
+(def all-map
+  {:x 1
+   :y 2})
+
+(println (merge map-nemesis all-map map-nemesis))

@@ -1,7 +1,11 @@
 (ns jepsen.mongodb.ycsb-generator
   (:import (site.ycsb.jepsen YCSBGenerator)))
 
-(def ycsb-generator (YCSBGenerator. 100000, 0.5, 0.5, "uniform", 100))
+(def ycsb-generator (atom (YCSBGenerator. 100000, 0.5, 0.5, "uniform", 100)))
+
+(defn reset-ycsb-generator
+  [max-op-counts rp wp distrib uniform_max]
+  (reset! ycsb-generator (YCSBGenerator. max-op-counts, rp, wp, distrib, uniform_max)))
 
 (defn tuple
   "Constructs a kv tuple"
@@ -18,7 +22,7 @@
 
 (defn ycsb-gen-java
   [index]
-  (let [op (.nextOperation ycsb-generator)
+  (let [op (.nextOperation @ycsb-generator)
         key (.getKey op)
         value (.getValue op)]
     ;(println (str "index is " index ", key is " key ", value is " value ", (= value nil)" (= value nil)))

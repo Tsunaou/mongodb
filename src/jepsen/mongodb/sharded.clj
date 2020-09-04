@@ -12,6 +12,7 @@
              [time :as mt]
              [mongo :as m]
              [causal :as causal]
+             [ycsb-generator :as ycsb]
              ]
             [jepsen
              [control :as c]
@@ -457,6 +458,16 @@
     )
   )
 
+(defn prepare-ycsb-generator
+  [opts]
+  (let [max-op-counts (:max-operation-counts opts)
+        rp (:read-proportion opts)
+        wp (:write-proportion opts)
+        distrib "uniform"
+        uniform_max 100]
+    (ycsb/reset-ycsb-generator max-op-counts, rp, wp, distrib, uniform_max))
+  )
+
 ;; Causal相关的测试
 ;; opts a map like {:read-concern :concurrency etc.}
 (defn causal-test [opts]
@@ -473,19 +484,21 @@
                            :chunk-size  (:chunk-size opts)
                            :shard-count (:shard-count opts)})})
   (prepare-threads opts)
+  (prepare-ycsb-generator opts)
   (let [mongos-sem (Semaphore. (or (:mongos-count opts)     ;; 好像没有看到代码里哪里有 mongos-count
-                                   (count (:nodes opts))))] ;; Semahphore Java信号量
+                                   (count (:nodes opts))))  ;; Semahphore Java信号量
+        nemesis-map (if (:with-nemesis opts)
+                      {:nemesis (sharded-nemesis-node)}
+                      nil)]
     (core/mongodb-test
      "causal-register"
      (merge
       opts
       (causal/test opts)
+      nemesis-map
       {
        ;:concurrency (count (:nodes opts))
        :client (causal-client opts)
-       ;:nemesis (sharded-nemesis)
-       ; TODO:如果不作用nemesis，就注释掉
-       :nemesis (sharded-nemesis-node)
        :os debian/os
        :db (db (:clock opts)
                (:tarball opts)

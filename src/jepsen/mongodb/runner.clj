@@ -116,6 +116,37 @@
     :parse-fn #(Long/parseLong %)
     :validate [pos? "Must be positive"]]
 
+   [nil "--with-nemesis Boolean"
+    "Will nemesis takes affects on the system"
+    :default false
+    :parse-fn #(Boolean/parseBoolean %)
+    :validate [boolean? "Must be boolean"]]
+
+
+   [nil "--max-operation-counts Number"
+    "The max number of operations to be execute"
+    :default 100000
+    :parse-fn #(Long/parseLong %)
+    :validate [pos? "Must be positive"]]
+
+   ["-opcounts" "--operation-counts Number"
+    "How many operations to be execute"
+    :default 2000
+    :parse-fn #(Long/parseLong %)
+    :validate [pos? "Must be positive"]]
+
+   ["-rp" "--read-proportion Proportion"
+    "The proportion of read operations"
+    :default 0.5
+    :parse-fn #(Double/parseDouble %)
+    :validate [double? "Must be double"]]
+
+   ["-wp" "--write-proportion Proportion"
+    "The proportion of write operations"
+    :default 0.5
+    :parse-fn #(Double/parseDouble %)
+    :validate [double? "Must be double"]]
+
    ["-w" "--write-concern LEVEL" "Write concern level"
     :default  :majority
     :parse-fn keyword

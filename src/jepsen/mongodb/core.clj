@@ -496,11 +496,12 @@
                           "-ti-" (:time-limit opts)
                           "-sd-" (:shard-count opts)
                           "-cry-" (:concurrency opts)
-                          "-wn-" (:write-counts opts)
-                          "-rn-" (:read-counts opts)
-                          "-cpk-" (:clients-per-key opts)
-                          ;"-no-nemesis"
-                          "-node-failure"
+                          "-wp-" (:write-proportion opts)
+                          "-rp-" (:read-proportion opts)
+                          "-ops-" (:operation-counts opts)
+                          (if (:with-nemesis opts)
+                            "-node-failure"
+                            "-no-nemesis")
                           )
           :os        debian/os
           :db        (db (:clock opts) (:tarball opts))
