@@ -1,5 +1,5 @@
 (ns jepsen.mongodb.ycsb-generator
-  (:import (jepsen.mongodb YCSBGenerator)))
+  (:import (site.ycsb.jepsen YCSBGenerator)))
 
 (def ycsb-generator (YCSBGenerator. 10000, 0.5, 0.5, "uniform", 100))
 

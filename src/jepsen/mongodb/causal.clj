@@ -10,8 +10,8 @@
             [clojure.tools.logging :refer [info warn]]
             [clojure.pprint :refer [pprint]]
             [jepsen.mongodb.core :as core]
-            ;[jepsen.mongodb.differentiated-generator :as diff]
-            ;[jepsen.mongodb.ycsb-generator :as ycsb]
+            [jepsen.mongodb.differentiated-generator :as diff]
+            [jepsen.mongodb.ycsb-generator :as ycsb]
             ))
 
 (defprotocol Model
@@ -227,7 +227,20 @@
      ;                  (shard-migration-gen-sleep)
      ;                  )
      ;                (gen/time-limit (:time-limit opts)))
-     :generator (->> (gen/seq (map ycsb-gen (range 2000)))
+     ;:generator (->> (gen/seq (map ycsb-gen (range 2000)))
+     ;                (gen/stagger 1)
+     ;                ;(gen/nemesis
+     ;                ;  (gen/seq (cycle [(gen/sleep 10)
+     ;                ;                   {:type :info, :f :start}
+     ;                ;                   (gen/sleep 10)
+     ;                ;                   {:type :info, :f :stop}])))
+     ;                (gen/nemesis
+     ;                  ;(shard-migration-gen)
+     ;                  ; TODO:如果不作用nemesis，就用Sleeo
+     ;                  (shard-migration-gen-sleep)
+     ;                  )
+     ;                (gen/time-limit (:time-limit opts)))
+     :generator (->> (gen/seq (map ycsb/ycsb-gen-java (range 2000)))
                      (gen/stagger 1)
                      ;(gen/nemesis
                      ;  (gen/seq (cycle [(gen/sleep 10)
