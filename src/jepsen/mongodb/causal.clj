@@ -240,7 +240,7 @@
      ;                  (shard-migration-gen-sleep)
      ;                  )
      ;                (gen/time-limit (:time-limit opts)))
-     :generator (->> (gen/seq (map ycsb/ycsb-gen-java (range 2000)))
+     :generator (->> (gen/seq (map ycsb/ycsb-gen-java (range 5000)))
                      (gen/stagger 1)
                      ;(gen/nemesis
                      ;  (gen/seq (cycle [(gen/sleep 10)
@@ -248,9 +248,9 @@
                      ;                   (gen/sleep 10)
                      ;                   {:type :info, :f :stop}])))
                      (gen/nemesis
-                       ;(shard-migration-gen)
+                       (shard-migration-gen)
                        ; TODO:如果不作用nemesis，就用Sleeo
-                       (shard-migration-gen-sleep)
+                       ;(shard-migration-gen-sleep)
                        )
                      (gen/time-limit (:time-limit opts)))
      }

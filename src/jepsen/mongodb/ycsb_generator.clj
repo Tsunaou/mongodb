@@ -1,7 +1,7 @@
 (ns jepsen.mongodb.ycsb-generator
   (:import (site.ycsb.jepsen YCSBGenerator)))
 
-(def ycsb-generator (YCSBGenerator. 10000, 0.5, 0.5, "uniform", 100))
+(def ycsb-generator (YCSBGenerator. 100000, 0.5, 0.5, "uniform", 100))
 
 (defn tuple
   "Constructs a kv tuple"

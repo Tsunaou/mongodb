@@ -65,6 +65,7 @@
 
 ; TODO: what is causal session in mongodb
 (defn start-causal-session [client]
+  (info "Starting new session")
   (let [opts (-> (ClientSessionOptions/builder)
                  (.causallyConsistent true)
                  .build)]

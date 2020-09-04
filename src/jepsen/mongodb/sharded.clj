@@ -43,75 +43,27 @@
             TimeUnit]))
 
 (def concurrency (atom 1))
-(def threads (atom (vec (range @concurrency))))
-(def thread->session (atom (vec (take @concurrency (cycle [nil])))))                             ;存放线程对应client的causal session
-(def clients-per-key (atom 1))
+(def processes (atom (vec (range @concurrency))))
 
-(def group-size (atom 1))                                   ; 每一组的进程数
-(def group-count (atom 1))                                  ; 一共有多少组
-(def group-threads (atom []))                               ; 每组对应的进程
-(def group-keys (atom []))                                  ; 每组对应的key
-
+(defn reset-concurrency
+  [n]
+  (reset! concurrency n)
+  (reset! processes (vec (range @concurrency))))
 
 (defn process->thread                                       ; 根据mod关系，得到process对应的线程
   [process]
   (mod process @concurrency))
 
-(defn print-threads-session-status
-  []
-  (println "concurrency "  @concurrency)
-  (println "threads " @threads)
-  (println "thread->session " @thread->session)
-  (println "clients-per-key " @clients-per-key)
-  (println "group-size" @group-size)
-  (println "group-count" @group-count)
-  (println "group-threads" @group-threads)
-  (println "group-keys" @group-keys))
+(defn thread->process
+  [thread]
+  (get @processes thread))
 
-(defn reset-concurrency
-  [n]
-  (reset! concurrency n)
-  (reset! threads (vec (range @concurrency)))
-  (reset! thread->session (vec (take @concurrency (cycle [nil])))))
+(defn update-process
+  [thread new-process]
+  (info "Starting update-process")
+  (reset! processes (assoc @processes thread new-process))
+  (info "Ending update-process"))
 
-(defn reset-clients-per-key
-  [n]
-  (reset! clients-per-key n)
-  (reset! group-size n)
-  (let [thread-count (count @threads)]
-    (reset! group-count (quot thread-count @group-size)))
-  (reset! group-threads (->> @threads
-                             (partition @group-size)
-                             (mapv vec)))
-  (reset! group-keys (vec (take @group-count (cycle [nil])))))
-
-(defn update-session
-  [process session]
-  (let [thread (process->thread process)]
-    (reset! thread->session (assoc @thread->session thread session))))
-
-(defn get-session
-  [process]
-  (let [thread (process->thread process)]
-    (get @thread->session thread)))
-
-(defn get-key-threads
-  [process]
-  (let [thread (process->thread process)
-        group (quot thread @group-size)]
-    (nth @group-threads group)))
-
-(defn get-group-key
-  [process]
-  (let [thread (process->thread process)
-        group (quot thread @group-size)]
-    (nth @group-keys group)))
-
-(defn set-group-key
-  [process key]
-  (let [thread (process->thread process)
-        group (quot thread @group-size)]
-    (reset! group-keys (assoc @group-keys group key))))
 
 (defn init-configsvr! [test node]
   (c/sudo (:username test)
@@ -413,49 +365,22 @@
       (let [id    (key (:value op))
             value (val (:value op))]
         ;(info jepsen.generator/*threads*)
-        (let [process (:process op)
-              key-threads (get-key-threads process)]
-          ;          (info (str "key threads " process " " key-threads))
-            ;          ;; 当前组的key的绑定
-            (let [last-key (get-group-key process)]
-              ;; 初始化或更新key
-              (info "last-key is " last-key ", id is " id)
-              (if (or (nil? last-key) (not (= last-key id)))
-                ;; TODO: 为啥要切换
-                (let [_ (reset! session nil)
-                    _ (set-group-key process id)]
-                (doseq [x-threads key-threads]
-                  (info "Update session " x-threads " nil")
-                  (update-session x-threads nil)))))
-          ;; causal session 的创建
-          (if (or (nil? @session) (nil? (get-session process)))
-            ;; 若当前client没有session，则为其创建一个session
-            (let [new-session (m/start-causal-session client)
-                  _   (update-session process new-session)
-                  _   (reset! session new-session)
-                  _   (reset! last-optime nil)]       ;为当前的client开启一个causal session
-              ))
-          ; session 的输出
-          ;(doseq [thread key-threads]
-          ;  (let [session (get-session thread)]
-          ;    (if (nil? session)
-          ;      (info (str "thread " thread " session is none"))
-          ;      (info (str "thread " thread " " session)))))
-          ;; causal session 的同步
-          ;; TODO: ~~我觉得这里可能会死锁~~(根据MongoDB的文档，不需要手动同步)
-          ;(doseq [friend-process key-threads]
-          ;  (if-not (= process friend-process)
-          ;    (let [friend-session (get-session friend-process)]
-          ;      (if-not (nil? friend-session)
-          ;        (let [friend-optime (m/operationTime friend-session)
-          ;              friend-clustertime (m/clusterTime friend-session)]
-          ;          ;(info (str "optime " friend-optime))
-          ;          ;(info (str "clustertime " friend-clustertime))
-          ;          ;(info (str "session " @session))
-          ;          (m/advanceOperationTime @session friend-optime)
-          ;          (m/advanceClusterTime @session friend-clustertime))))))
-
-              )
+        (let [cur-process (:process op)
+              thread (process->thread cur-process)
+              pre-process (thread->process thread)]
+          (if (not (= cur-process pre-process))
+            (let [_ (info (str "Operation is " op))
+                  _ (info (str "Update process, to thread " thread ", pre-process is " pre-process ", and cur-process is " cur-process))
+                  _ (update-process thread cur-process)
+                  _ (info (str "Update process ok"))
+                  _ (info @processes)]
+              (reset! session nil)))
+          (if (nil? @session)
+            (let [_   (info (str "Update session" @session))
+                  new-session (m/start-causal-session client)
+                  _   (reset! session new-session)    ;为当前的client开启一个causal session
+                  _   (reset! last-optime nil)]
+              (info "Update successfully"))))
         (case (:f op)
           :read-init (let [doc (m/find-one @session coll id)
                            ;; Set the value to 0 (init value for BEGH checker)
@@ -517,8 +442,6 @@
   [concur c-per-key]
   (info "not equal, update")
   (reset-concurrency concur)
-  (reset-clients-per-key c-per-key)
-  (print-threads-session-status)
   )
 
 (defn prepare-threads
@@ -562,7 +485,7 @@
        :client (causal-client opts)
        ;:nemesis (sharded-nemesis)
        ; TODO:如果不作用nemesis，就注释掉
-       ;:nemesis (sharded-nemesis-node)
+       :nemesis (sharded-nemesis-node)
        :os debian/os
        :db (db (:clock opts)
                (:tarball opts)
