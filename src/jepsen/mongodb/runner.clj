@@ -116,9 +116,9 @@
     :parse-fn #(Long/parseLong %)
     :validate [pos? "Must be positive"]]
 
-   [nil "--with-nemesis Boolean"
+   ["-ne" "--with-nemesis Boolean"
     "Will nemesis takes affects on the system"
-    :default false
+    :default true
     :parse-fn #(Boolean/parseBoolean %)
     :validate [boolean? "Must be boolean"]]
 
@@ -129,19 +129,19 @@
     :parse-fn #(Long/parseLong %)
     :validate [pos? "Must be positive"]]
 
-   ["-opcounts" "--operation-counts Number"
+   [nil "--operation-counts Number"
     "How many operations to be execute"
-    :default 2000
+    :default 4000
     :parse-fn #(Long/parseLong %)
     :validate [pos? "Must be positive"]]
 
-   ["-rp" "--read-proportion Proportion"
+   [nil "--read-proportion Proportion"
     "The proportion of read operations"
     :default 0.5
     :parse-fn #(Double/parseDouble %)
     :validate [double? "Must be double"]]
 
-   ["-wp" "--write-proportion Proportion"
+   [nil "--write-proportion Proportion"
     "The proportion of write operations"
     :default 0.5
     :parse-fn #(Double/parseDouble %)
