@@ -6,24 +6,24 @@ Runs two types of tests against a MongoDB cluster: single-document compare-and-s
 ### Import Jar which is not in Maven Repository
 Use a plugin named [lein-localrepo](https://github.com/kumarshantanu/lein-localrepo).
 
-In this project, we need the YCSB core `core-0.18.0-SNAPSHOT.jar`with our `ycsb-generator`.
+In this project, we need the YCSB core `core-0.18.1-SNAPSHOT.jar`with our `ycsb-generator`.
 After packaging it, we put it to `./resources/` and we can import this jar by commands as follows:
 
 ```bash
-lein localrepo coords ./resources/core-0.18.0-SNAPSHOT.jar 
+lein localrepo coords ./resources/core-0.18.1-SNAPSHOT.jar 
 ----------------------------------------------------------------
 WARNING: You have $CLASSPATH set, probably by accident.
 It is strongly recommended to unset this before proceeding.
-./resources/core-0.18.0-SNAPSHOT.jar core/core 0.18.0-SNAPSHOT
+./resources/core-0.18.1-SNAPSHOT.jar core/core 0.18.1-SNAPSHOT
 ```
 Then edit `project.clj`
 ```clj
 :dependencies [...
-             [core/core "0.18.0-SNAPSHOT"]]
+             [core/core "0.18.1-SNAPSHOT"]]
 ```
 Then set the classpath and add jar to local maven repository
 ```bash
-lein localrepo install ./resources/core-0.18.0-SNAPSHOT.jar core/core 0.18.0-SNAPSHOT
+lein localrepo install ./resources/core-0.18.1-SNAPSHOT.jar core/core 0.18.1-SNAPSHOT
 ```
 At last, solve the dependency problems
 ```bash

@@ -41,7 +41,11 @@
             [knossos.model :as model]
             [jepsen.tests :as tests])
   (:import [java.util.concurrent Semaphore
-            TimeUnit]))
+                                 TimeUnit]
+           (java.util.concurrent.atomic AtomicInteger)))
+
+(def ok-counter (AtomicInteger. 0))
+(defn increment-ok [] (.getAndIncrement ok-counter))
 
 (def concurrency (atom 1))
 (def processes (atom (vec (range @concurrency))))
@@ -397,12 +401,19 @@
                               :position optime
                               :link :init))
 
+          :overflow (let [optime (-> (m/optime @session) .getValue)]
+                  (assoc op
+                    :type  :info
+                    :value "successful operations are enough"
+                    :position optime))
+
           :read (let [doc (m/find-one @session coll id)
                       v   (or (:value doc) 0)
                       optime (-> (m/optime @session) .getValue)
                       ;TODO: 这里的last-optime为什么不更新？
                       lo @last-optime
                       _ (reset! last-optime optime)]
+                  (increment-ok)
                   (assoc op
                          :type  :ok
                          :value (independent/tuple id v)
@@ -417,6 +428,7 @@
                    ;; storage engine, if you perform a write the same as the
                    ;; current value.
                    (assert (< (:matched-count res) 2))
+                   (increment-ok)
                    (assoc op
                           :type :ok
                           :position optime
@@ -465,7 +477,8 @@
         wp (:write-proportion opts)
         distrib "uniform"
         uniform_max 100]
-    (ycsb/reset-ycsb-generator max-op-counts, rp, wp, distrib, uniform_max))
+    (ycsb/reset-ycsb-generator max-op-counts, rp, wp, distrib, uniform_max)
+    (ycsb/init-ok-counter ok-counter))
   )
 
 ;; Causal相关的测试

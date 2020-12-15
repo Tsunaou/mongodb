@@ -1,16 +1,27 @@
 (ns jepsen.mongodb.ycsb-generator
-  (:import (site.ycsb.jepsen YCSBGenerator)))
+  (:require [clojure.tools.logging :refer [info]])
+  (:import (site.ycsb.jepsen YCSBGeneratorWithCounter OKCounterNotInitializedException YCSBKeyValue)
+           (java.util.concurrent.atomic AtomicInteger)))
 
-(def ycsb-generator (atom (YCSBGenerator. 100000, 0.5, 0.5, "uniform", 100)))
+(def ycsb-generator (atom (YCSBGeneratorWithCounter. 100000, 0.5, 0.5, "uniform", 100)))
 
 (defn reset-ycsb-generator
   [max-op-counts rp wp distrib uniform_max]
-  (reset! ycsb-generator (YCSBGenerator. max-op-counts, rp, wp, distrib, uniform_max)))
+  (reset! ycsb-generator (YCSBGeneratorWithCounter. max-op-counts, rp, wp, distrib, uniform_max)))
+
+(defn init-ok-counter
+  [^AtomicInteger counter]
+  (info "init ok-counter in init-ok-counter with init value " (.get counter))
+  (.initOKCounter @ycsb-generator counter))
 
 (defn tuple
   "Constructs a kv tuple"
   [k v]
   (clojure.lang.MapEntry. k v))
+
+(defn ycsb-overflow
+  []
+  (fn [_ _] {:type :invoke, :f :overflow, :value (tuple nil nil)}))
 
 (defn ycsb-read
   [key]
@@ -22,13 +33,19 @@
 
 (defn ycsb-gen-java
   [index]
-  (let [op (.nextOperation @ycsb-generator)
-        key (.getKey op)
-        value (.getValue op)]
-    ;(println (str "index is " index ", key is " key ", value is " value ", (= value nil)" (= value nil)))
-    (if (= value nil)
-      (ycsb-read key)
-      (ycsb-write key value))))
+  (try
+    (let [op (.nextOperation @ycsb-generator)
+          key (.getKey op)
+          value (.getValue op)]
+      ;(println (str "index is " index ", key is " key ", value is " value ", (= key nil)" (= key nil) ", (= value nil)" (= value nil)))
+      (if (= key nil)
+        (ycsb-overflow)
+        (if (= value nil)
+          (ycsb-read key)
+          (ycsb-write key value))))
+    (catch OKCounterNotInitializedException e
+      (info e )))
+)
 
 (defn ycsb-gen
   "docstring"

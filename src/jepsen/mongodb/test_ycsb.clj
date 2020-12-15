@@ -1,6 +1,11 @@
 (ns jepsen.mongodb.test-ycsb
-  (:require [jepsen.mongodb.ycsb-generator :as ycsb]))
+  (:require [jepsen.mongodb.ycsb-generator :as ycsb])
+  (:import (java.util.concurrent.atomic AtomicInteger)))
 
+(def ok-counter
+  (AtomicInteger. 0))
+
+(ycsb/init-ok-counter ok-counter)
 
 (let [op (ycsb/ycsb-gen-java 1)]
   (println (op nil nil)))
