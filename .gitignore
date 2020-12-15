@@ -1,6 +1,4 @@
-/datas/data0817.zip
 /target
-/store
 /classes
 /checkouts
 /.idea
@@ -18,4 +16,3 @@ pom.xml.asc
 .lein-failures
 *~
 .*.swp
-/store-100w-200r-no-nemesis

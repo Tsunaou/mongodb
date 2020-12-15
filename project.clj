@@ -13,10 +13,8 @@
              "-Xms16g"
              "-Xmn4g"
              "-XX:+UseConcMarkSweepGC"
-             "-XX:+UseParNewGC"
              "-XX:+CMSParallelRemarkEnabled"
              "-XX:+AggressiveOpts"
-             "-XX:+UseFastAccessorMethods"
              "-XX:MaxInlineLevel=32"
              "-XX:MaxRecursiveInlineLevel=2"
              "-server"]
