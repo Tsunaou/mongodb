@@ -200,8 +200,18 @@ if __name__ == '__main__':
 
     runner = JepsenRunner()
     network_manager = NetWorkManager()
-    sender = SSHSender("_20201221")
-    
+    sender = SSHSender("_20201222")
+
+    for i in range(2000, 5001, 500):
+        for with_nemesis in [True, False]:
+            for wr in [(MAJORITY, MAJORITY), (W1, LOCAL)]:
+                network_manager.check_network()
+                cmd = runner.gen_commands(w=wr[0], r=wr[1], with_nemesis=with_nemesis, auto_time=True, op_counts=int(i))
+                print(cmd)
+#                 res = os.system(cmd)
+#                 print(res)
+#                 sender.send_lastest_result()
+
     # for i in range(2000, 5001, 100):
     #     network_manager.check_network()
     #     cmd = runner.gen_commands(w="majority", r="majority", with_nemesis=False, auto_time=True, op_counts=int(i))
@@ -235,9 +245,3 @@ if __name__ == '__main__':
     #     print(res)
     #     sender.send_lastest_result()
 
-    network_manager.check_network()
-    cmd = runner.gen_commands(w=MAJORITY, r=MAJORITY, with_nemesis=True, auto_time=False, time_limit=361, op_counts=1500)
-    print(cmd)
-    res = os.system(cmd)
-    print(res)
-    sender.send_lastest_result()

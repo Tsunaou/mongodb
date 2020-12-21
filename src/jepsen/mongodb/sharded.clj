@@ -373,7 +373,7 @@
   [op session msg]
   (let [optime (-> (m/optime @session) .getValue)]
     (info msg)
-    (woker-sleep 2000)
+    (woker-sleep 10000)
     (assoc op
       :type  :fail
       :value (:value op)
