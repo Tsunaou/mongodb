@@ -312,6 +312,7 @@
          (case (.getCode e#)
            189   (assoc ~op :type :fail, :error :stepped-down)
            10107 (assoc ~op :type :fail, :error :not-primary)
+           11000 (assoc ~op :type :fail, :error :duplicate-key)
            (throw e#)))
 
        (catch com.mongodb.MongoNotPrimaryException e#
@@ -321,6 +322,18 @@
          (condp re-find (.getMessage e#)
            #"Timed out .+? while waiting for a server that matches .+?ServerSelector"
            (assoc ~op :type :fail, :error :no-ready-server)
+           (throw e#)))
+
+       (catch com.mongodb.MongoWriteException e#
+         (condp re-find (.getMessage e#)
+           #"Write fails may due to not master, time-limit or other reason"
+           (assoc ~op :type :fail, :error :write-exception)
+           (throw e#)))
+
+       (catch com.mongodb.MongoWriteConcernException e#
+         (condp re-find (.getMessage e#)
+           #"WriteConcern fails"
+           (assoc ~op :type :fail, :error :write-concern-exception)
            (throw e#)))
 
        (catch java.lang.IllegalArgumentException e#

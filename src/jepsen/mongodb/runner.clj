@@ -123,11 +123,11 @@
     :validate [boolean? "Must be boolean"]]
 
 
-   [nil "--max-operation-counts Number"
-    "The max number of operations to be execute"
-    :default 100000
-    :parse-fn #(Long/parseLong %)
-    :validate [pos? "Must be positive"]]
+   ;[nil "--max-operation-counts Number"
+   ; "The max number of operations to be execute"
+   ; :default 100000
+   ; :parse-fn #(Long/parseLong %)
+   ; :validate [pos? "Must be positive"]]
 
    [nil "--operation-counts Number"
     "How many operations to be execute"

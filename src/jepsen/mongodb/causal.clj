@@ -178,18 +178,14 @@
 (defn shard-migration-gen []
   (gen/seq (cycle [(gen/sleep 10)
                    {:type :info, :f :move}
-                   (gen/sleep 0.5)
-                   {:type :info, :f :move}
-                   (gen/sleep 0.5)
-                   {:type :info, :f :move}
-                   (gen/sleep 0.5)
+                   (gen/sleep 5)
                    {:type :info, :f :start}
                    (gen/sleep 20)
                    {:type :info, :f :stop}
-                   (gen/sleep 5)
-                   {:type :info, :f :tempstop}
-                   (gen/sleep 20)
-                   {:type :info, :f :continue}])))
+                   (gen/sleep 10)
+                   {:type :info, :f :mongo-stop}
+                   (gen/sleep 15)
+                   {:type :info, :f :mongo-continue}])))
 
 (defn shard-migration-gen-sleep []
   (gen/seq (cycle [(gen/sleep 30)])))
@@ -240,7 +236,7 @@
      ;                  (shard-migration-gen-sleep)
      ;                  )
      ;                (gen/time-limit (:time-limit opts)))
-     :generator (->> (gen/seq (map ycsb/ycsb-gen-java (range (:operation-counts opts))))
+     :generator (->> (gen/seq (map ycsb/ycsb-gen-java (range (* 3 (:operation-counts opts)))))
                      (gen/stagger 1)
                      ;(gen/nemesis
                      ;  (gen/seq (cycle [(gen/sleep 10)

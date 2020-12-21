@@ -45,10 +45,26 @@
            (java.util.concurrent.atomic AtomicInteger)))
 
 (def ok-counter (AtomicInteger. 0))
-(defn increment-ok [] (.getAndIncrement ok-counter))
+(defn increment-ok []
+  (let [ok (.incrementAndGet ok-counter)]
+    (info "increment-ok counter:" ok)))
 
 (def concurrency (atom 1))
 (def processes (atom (vec (range @concurrency))))
+
+(defn op-overflow
+  [test]
+  (let [ok (.get ok-counter)
+        max-ops (:operation-counts test)]
+    (> ok max-ops)))
+
+(defn need-lock
+  [test]
+  (let [ok (.get ok-counter)
+       max-ops (:operation-counts test)
+       concur @concurrency
+       remains (- max-ops ok)]
+  (> concur remains)))
 
 (defn reset-concurrency
   [n]
@@ -248,20 +264,30 @@
 (defn balancer-nemesis [conns]
   (reify nemesis/Nemesis
     (setup! [this test]
-      (balancer-nemesis (get-routers (:nodes test))))
+      (info "Balance-Nemesis setup")
+      (let [router (get-routers (:nodes test))]
+        (info "router:" router)
+        (balancer-nemesis router)))
 
     (invoke! [this test op]
         (case (:f op)
-          :move (let [dest-replset (str "jepsen" (rand-int (:shard-count test)))
-                      id @(:last-op-id test)]
-                  (assert (not (empty? conns)) "Nemesis is unable to connect a mongos router.")
-                  (m/admin-command! (rand-nth conns)
+          :move (let [_ (info "balancer-nemesis op is " op)
+                      _ (info "balancer-nemesis shard-count is " (:shard-count test))
+                      dest-replset (str "jepsen" (rand-int (:shard-count test)))
+                      _ (info "dest-replset is " dest-replset)
+                      id @(:last-op-id test)
+                      _ (info "last-op-id is " id)
+                      router (get-routers (:nodes test))
+                      ]
+                  (assert (not (empty? router)) "Nemesis is unable to connect a mongos router.")
+                  (m/admin-command! (rand-nth router)
                                     :moveChunk "jepsen.sharded"
                                     :find {:_id id}
                                     :to dest-replset)
                   (assoc op :value [:moving-chunk-with id :to dest-replset]))))))
 
-(defn start!
+
+(defn mongo-continue!
   "Starts DB."
   [node test]
   (info node "starting node")
@@ -270,7 +296,7 @@
     ))
 
 
-(defn stop!
+(defn mongo-pause!
   "Stops DB."
   [node test]
   (info node "stopping node")
@@ -279,7 +305,7 @@
     ))
 
 (defn node-tempstop-continue
-  [targeter start! stop!]
+  [targeter start-nemesis! stop-nemesis!]
   (let [nodes (atom nil)]
     (reify nemesis/Nemesis
       (setup! [this test] this)
@@ -288,22 +314,22 @@
         (locking nodes
           (assoc op :type :info, :value
                     (case (:f op)
-                      :continue (let [ns (:nodes test)
+                      :mongo-stop (let [ns (:nodes test)
                                    ns (try (targeter test ns)
                                            (catch clojure.lang.ArityException e
                                              (targeter ns)))
                                    ns (util/coll ns)]
                                (if ns
                                  (if (compare-and-set! nodes nil ns)
-                                   (c/on-many ns (start! test c/*host*))
+                                   (c/on-many ns (start-nemesis! test c/*host*))
                                    (str "nemesis already disrupting "
                                         (pr-str @nodes)))
-                                 :no-target))
-                      :tempstop (if-let [ns @nodes]
-                              (let [value (c/on-many ns (stop! test c/*host*))]
+                                 :no-stop-target))
+                      :mongo-continue (if-let [ns @nodes]
+                              (let [value (c/on-many ns (stop-nemesis! test c/*host*))]
                                 (reset! nodes nil)
                                 value)
-                              :not-started)))))
+                              :not-continued-started)))))
 
       (teardown! [this test]))))
 
@@ -312,13 +338,13 @@
   []
   (node-tempstop-continue
     rand-nth
-    (fn start [test node] (stop! node test))
-    (fn stop  [test node] (start! node test))))
+    (fn pause [test node] (mongo-pause! node test))
+    (fn continue  [test node] (mongo-continue! node test))))
 
 (defn sharded-nemesis-node []
   (nemesis/compose
     {#{:start :stop} (nemesis/partition-random-halves)
-     #{:continue :tempstop} (killer)
+     #{:mongo-continue :mongo-stop} (killer)
      #{:move} (balancer-nemesis nil)}))
 
 (defn shard-migration-gen []
@@ -337,6 +363,55 @@
   (assert
    (<= 1 (:shard-count opts))
    "Sharded tests must be run with a --shard-count of 1 or higher"))
+
+(defn woker-sleep
+  [interval]
+  (info "sleeping for " interval "ms")
+  (Thread/sleep interval))
+
+(defn gen-overflow-reply
+  [op session msg]
+  (let [optime (-> (m/optime @session) .getValue)]
+    (info msg)
+    (woker-sleep 2000)
+    (assoc op
+      :type  :fail
+      :value (:value op)
+      :info "successful operations are enough"
+      :position optime)))
+
+(defn execute-read
+  [test op session coll id last-optime]
+  (let [doc (m/find-one @session coll id)
+        v   (or (:value doc) 0)
+        optime (-> (m/optime @session) .getValue)
+        ;TODO: 这里的last-optime为什么不更新？
+        lo @last-optime
+        _ (reset! last-optime optime)]
+    (increment-ok)
+    (reset! (:last-op-id test) id)
+    (assoc op
+      :type  :ok
+      :value (independent/tuple id v)
+      :position optime
+      :link lo)))
+
+(defn execute-write
+  [test op session coll id value last-optime]
+  (let [res (m/upsert! @session coll {:_id id, :value value})
+        optime (-> (m/optime @session) .getValue)
+        lo @last-optime
+        _ (reset! last-optime optime)]
+    ;; Note that modified-count could be zero, depending on the
+    ;; storage engine, if you perform a write the same as the
+    ;; current value.
+    (assert (< (:matched-count res) 2))
+    (increment-ok)
+    (reset! (:last-op-id test) id)
+    (assoc op
+      :type :ok
+      :position optime
+      :link lo)))
 
 ;;  用于Jepsen Causal测试的Client,实现了Client协议，有5阶段的生命周期
 (defrecord CausalClient [db-name
@@ -358,7 +433,8 @@
                      (m/db db-name)
                      (m/collection coll-name)
                      (m/with-read-concern  read-concern)
-                     (m/with-write-concern write-concern))]
+                     (m/with-write-concern write-concern))
+          _ (info "open! max_op_count " (:operation-counts test))]
       (assoc this
              :client      client
              :coll        coll
@@ -387,52 +463,27 @@
                   _   (reset! last-optime nil)]
               (info "Update successfully"))))
         (case (:f op)
-          :read-init (let [doc (m/find-one @session coll id)
-                           ;; Set the value to 0 (init value for BEGH checker)
-                           ;; if read returns nil.
-                           v   (or (:value doc) 0)
-                           ;; Turn this into something comparable
-                           optime (-> (m/optime @session) .getValue)
-                           ;; Update test state with latest optime for key/session
-                           _ (reset! last-optime optime)]
-                       (assoc op
-                              :type  :ok
-                              :value (independent/tuple id v)
-                              :position optime
-                              :link :init))
+          :overflow (gen-overflow-reply op session "Gen Overflow")
 
-          :overflow (let [optime (-> (m/optime @session) .getValue)]
-                  (assoc op
-                    :type  :info
-                    :value "successful operations are enough"
-                    :position optime))
+          :read (if (op-overflow test)
+                  (gen-overflow-reply op session "Read Overflow")
+                  (if (need-lock test)
+                    (locking ok-counter
+                      (info "need locking read")
+                      (if (op-overflow test)
+                        (gen-overflow-reply op session "Read Overflow")
+                        (execute-read test op session coll id last-optime)))
+                    (execute-read test op session coll id last-optime)))
 
-          :read (let [doc (m/find-one @session coll id)
-                      v   (or (:value doc) 0)
-                      optime (-> (m/optime @session) .getValue)
-                      ;TODO: 这里的last-optime为什么不更新？
-                      lo @last-optime
-                      _ (reset! last-optime optime)]
-                  (increment-ok)
-                  (assoc op
-                         :type  :ok
-                         :value (independent/tuple id v)
-                         :position optime
-                         :link lo))
-
-          :write (let [res (m/upsert! @session coll {:_id id, :value value})
-                       optime (-> (m/optime @session) .getValue)
-                       lo @last-optime
-                       _ (reset! last-optime optime)]
-                   ;; Note that modified-count could be zero, depending on the
-                   ;; storage engine, if you perform a write the same as the
-                   ;; current value.
-                   (assert (< (:matched-count res) 2))
-                   (increment-ok)
-                   (assoc op
-                          :type :ok
-                          :position optime
-                          :link lo))))))
+          :write (if (op-overflow test)
+                   (gen-overflow-reply op session "Write Overflow")
+                   (if (need-lock test)
+                     (locking ok-counter
+                       (info "need locking read")
+                       (if (op-overflow test)
+                         (gen-overflow-reply op session "Write Overflow")
+                         (execute-write test op session coll id value last-optime)))
+                     (execute-write test op session coll id value last-optime)))))))
 
   (close! [_ _]
     (.close ^java.io.Closeable client))
@@ -472,7 +523,7 @@
 
 (defn prepare-ycsb-generator
   [opts]
-  (let [max-op-counts (:max-operation-counts opts)
+  (let [max-op-counts (:operation-counts opts)
         rp (:read-proportion opts)
         wp (:write-proportion opts)
         distrib "uniform"
@@ -511,6 +562,7 @@
       nemesis-map
       {
        ;:concurrency (count (:nodes opts))
+       :last-op-id (atom nil)
        :client (causal-client opts)
        :os debian/os
        :db (db (:clock opts)
