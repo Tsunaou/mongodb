@@ -296,6 +296,11 @@
                 ; downloaded logs.
                 (finally (mdbutil/snarf-logs! test node)))))))))
 
+
+(defn info-throw [e#] 
+  (info (.getMessage e#))
+  (throw e#)
+)
 (defmacro with-errors
   "Takes an invocation operation, a set of idempotent operation(幂等) functions which
   can be safely assumed to fail without altering the model state, and a body to
@@ -332,9 +337,9 @@
 
        (catch com.mongodb.MongoWriteConcernException e#
          (condp re-find (.getMessage e#)
-           #"WriteConcern fails"
+           #"WriteConcernException"
            (assoc ~op :type :fail, :error :write-concern-exception)
-           (throw e#)))
+           (info-throw e#)))
 
        (catch java.lang.IllegalArgumentException e#
          (condp re-find (.getMessage e#)

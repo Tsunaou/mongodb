@@ -1,12 +1,14 @@
 import os
 import subprocess
 import paramiko
+import traceback
 
 MAJORITY = "majority"
 W1 = "w1"
 LOCAL = "local"
 TRUE = "true"
 FALSE = "false"
+LINEARIZABLE = "linearizable"
 
 LASTEST = "/home/young/DisAlg/Causal-Consistency/MongoDB/mongodb/store/latest/"
 HISTORY_EDN = LASTEST + "history.edn"
@@ -16,9 +18,19 @@ HOSTNAME = "114.212.86.195"
 PORT = 22
 USER = "ouyanghongrong"
 
+SENDER_LABEL = "_20210126"
+
+def local_execute(command):
+    with subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                          encoding="utf-8") as process:
+        stdout = process.stdout.readline()
+        stderr = process.stderr.readline()
+        return stdout, stderr
 
 class NetWorkManager(object):
-
+    """
+    管理网络资源；每次运行前通过ping baidu.com的结果判断校园网是否断开。若断开，则运行自动连接校园网的脚本
+    """
     def __init__(self) -> None:
         super().__init__()
         self.login = "/home/young/DisAlg/Causal-Consistency/dhTemp/njuLogin.py"
@@ -36,6 +48,7 @@ class NetWorkManager(object):
     def check_network(self):
         while not self.check_url():
             self.nju_login()
+
 
 class JepsenRunner(object):
     def __init__(self, nodes='/home/young/nodes', password='disalg.root!') -> None:
@@ -56,6 +69,13 @@ class JepsenRunner(object):
                 return int(120 + 0.1 * op_counts)
 
         elif w == W1 and r == LOCAL:
+            if with_nemesis:
+                # TODO: 有网络分区
+                return int(120 + 0.4 * op_counts)
+            else:
+                # TODO: 无网络分区
+                return int(120 + 0.4 * op_counts)
+        elif w == MAJORITY and r == LINEARIZABLE:
             if with_nemesis:
                 # TODO: 有网络分区
                 return int(120 + 0.4 * op_counts)
@@ -90,20 +110,22 @@ class JepsenRunner(object):
         if auto_time:
             limit = self.get_time_limit(w=w, r=r, with_nemesis=with_nemesis, op_counts=op_counts)
         return self.cmd_template.format(
-            limit, w, r, shard_count, self.nodes, self.get_with_nemesis(with_nemesis), self.password, concurrency, op_counts,
+            limit, w, r, shard_count, self.nodes, self.get_with_nemesis(with_nemesis), self.password, concurrency,
+            op_counts,
             write_proportion, read_proportion
         )
+
 
 class SSHSender(object):
 
     def __init__(self, label='') -> None:
         super().__init__()
-        self.ssh_key_path = '/home/young/.ssh/id_rsa'
+        # self.private_key = paramiko.RSAKey.from_private_key_file('/home/young/.ssh/id_rsa')
         self.ssh_client = paramiko.SSHClient()
         self.label = label
         try:
             self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            self.ssh_client.connect(hostname=HOSTNAME, port=PORT, username=USER, key_filename=self.ssh_key_path)
+            self.ssh_client.connect(hostname=HOSTNAME, port=PORT, username=USER, password=USER)
             stdin, stdout, stderr = self.ssh_client.exec_command('echo "ok"')
         except paramiko.SSHException as e:
             print(e)
@@ -117,6 +139,30 @@ class SSHSender(object):
         print("stderr is {}".format(stderr))
         return stdout, stderr
 
+    def get_local_md5sum(self, local):
+        md5sum, stderr = local_execute("md5sum {}".format(local))
+        print("local file's md5sum is {}".format(md5sum))
+        if stderr == '':
+            return md5sum.split()[0]
+
+
+    def get_remote_md5sum(self, remote):
+        md5sum, stderr = self.execute("md5sum {}".format(remote))
+        print("remote file's md5sum is {}".format(md5sum))
+        if stderr == '':
+            return md5sum.split()[0]
+
+    def check_file_exist(self, numbers, local, remote):
+        print("local file is ", local)
+        print("remote file is ", remote)
+        if numbers == 0:
+            return False
+        md5sum_local = self.get_local_md5sum(local=local)
+        md5sum_remote = self.get_remote_md5sum(remote=remote)
+        return md5sum_local == md5sum_remote \
+               and md5sum_remote is not None \
+               and md5sum_local is not None
+
     def send_lastest_result(self):
         if os.path.exists(JEPSEN_LOG):
             command = "cat {} | grep mongo-causal-register | grep -v GMT".format(JEPSEN_LOG)
@@ -128,7 +174,12 @@ class SSHSender(object):
                     idx_ops = title.find("ops")
                     idx_no = title.find("no")
                     ops = title[idx_ops + 4:idx_no - 1]
-                    if title.__contains__("majority"):
+                    if title.__contains__("linearizable"):
+                        if title.__contains__("failure"):
+                            dir = SERVER_BASE + "linearizable_failure/{}".format(title) + self.label
+                        else:
+                            dir = SERVER_BASE + "linearizable_stable/{}".format(title) + self.label
+                    elif title.__contains__("majority"):
                         if title.__contains__("failure"):
                             dir = SERVER_BASE + "majority_failure/{}".format(title) + self.label
                         else:
@@ -155,6 +206,20 @@ class SSHSender(object):
             stdout = stdout.strip('\n')
             try:
                 if stdout != '':
+                    # 加入一个关于重复上传文件的判断（同一份latest的文件只传一次）
+                    numbers = int(stdout)
+
+                    local_history = HISTORY_EDN
+                    local_log = JEPSEN_LOG
+                    pre_history = "{}/history{}_{}.edn".format(dir, ops, numbers-1)
+                    pre_log = "{}/jepsen{}_{}.log".format(dir, ops, numbers-1)
+
+                    history_flag = self.check_file_exist(numbers=numbers, local=local_history, remote=pre_history)
+                    log_flag = self.check_file_exist(numbers=numbers, local=local_log, remote=pre_log)
+
+                    if history_flag or log_flag:
+                        return
+
                     history = "history{}_{}.edn".format(ops, stdout)
                     command1 = "scp {} {}@{}:{}/{}".format(HISTORY_EDN, USER, HOSTNAME, dir, history)
                     jepsen = "jepsen{}_{}.log".format(ops, stdout)
@@ -173,18 +238,22 @@ class SSHSender(object):
 
             return stdout, stderr, dir
 
+
 def test_cmd():
     runner = JepsenRunner()
     cmd = runner.gen_commands(w=MAJORITY, r=MAJORITY, with_nemesis=False, auto_time=True, op_counts=1000)
     print(cmd)
     cmd = runner.gen_commands(w=MAJORITY, r=MAJORITY, with_nemesis=True, auto_time=True, op_counts=1000)
     print(cmd)
-    cmd = runner.gen_commands(w=MAJORITY, r=MAJORITY, with_nemesis=True, auto_time=False, time_limit=10000, op_counts=1000)
+    cmd = runner.gen_commands(w=MAJORITY, r=MAJORITY, with_nemesis=True, auto_time=False, time_limit=10000,
+                              op_counts=1000)
     print(cmd)
+
 
 def test_network():
     nm = NetWorkManager()
     nm.check_network()
+
 
 if __name__ == '__main__':
     # WriteConcern and ReadConcern
@@ -200,17 +269,63 @@ if __name__ == '__main__':
 
     runner = JepsenRunner()
     network_manager = NetWorkManager()
-    sender = SSHSender("_20201222")
 
-    for i in range(2000, 5001, 500):
-        for with_nemesis in [True, False]:
-            for wr in [(MAJORITY, MAJORITY), (W1, LOCAL)]:
-                network_manager.check_network()
-                cmd = runner.gen_commands(w=wr[0], r=wr[1], with_nemesis=with_nemesis, auto_time=True, op_counts=int(i))
-                print(cmd)
-#                 res = os.system(cmd)
-#                 print(res)
-#                 sender.send_lastest_result()
+    #  for i in range(2000, 5001, 500):for
+    #     for with_nemesis in [True, False]:
+    #         for wr in [(MAJORITY, MAJORITY), (W1, LOCAL)]:
+    #             network_manager.check_network()
+    #             cmd = runner.gen_commands(w=wr[0], r=wr[1], with_nemesis=with_nemesis, auto_time=True, op_counts=int(i))
+    #             print(cmd)
+    #             res = os.system(cmd)
+    #             print(res)
+    #             try:
+    #                 sender = SSHSender("_20201222")
+    #                 sender.send_lastest_result()
+    #             except Exception as e:
+    #                 traceback.print_exc()
+    # for i in range(0, 2001, 100):
+    #     for with_nemesis in [True, False]:
+    #         for wr in [(MAJORITY, MAJORITY), (W1, LOCAL), (MAJORITY, LINEARIZABLE)]:
+    #             network_manager.check_network()
+    #             cmd = runner.gen_commands(w=wr[0], r=wr[1], with_nemesis=with_nemesis, auto_time=True, op_counts=int(i))
+    #             print(cmd)
+    #             res = os.system(cmd)
+    #             print(res)
+    #             try:
+    #                 sender = SSHSender("_20210116")
+    #                 sender.send_lastest_result()
+    #             except Exception as e:
+    #                 traceback.print_exc()
+
+    for j in range(0, 10, 1):
+        for i in range(0, 1001, 100):
+            for with_nemesis in [True, False]:
+                for wr in [(MAJORITY, MAJORITY), (W1, LOCAL)]:
+                    network_manager.check_network()
+                    cmd = runner.gen_commands(w=wr[0], r=wr[1], with_nemesis=with_nemesis, auto_time=True, op_counts=int(i))
+                    print(cmd)
+                    res = os.system(cmd)
+                    print(res)
+                    try:
+                        sender = SSHSender(SENDER_LABEL)
+                        sender.send_lastest_result()
+                        print("send",j,i,with_nemesis,wr)
+                    except Exception as e:
+                        traceback.print_exc()
+
+    # for i in range(2000, 5000, 500):
+    #     for with_nemesis in [True, False]:
+    #         for wr in [(MAJORITY, MAJORITY), (W1, LOCAL), (MAJORITY, LINEARIZABLE)]:
+    #             network_manager.check_network()
+    #             cmd = runner.gen_commands(w=wr[0], r=wr[1], with_nemesis=with_nemesis, auto_time=True, op_counts=int(i))
+    #             print(cmd)
+    #             res = os.system(cmd)
+    #             print(res)
+    #             try:
+    #                 sender = SSHSender("_20210116")
+    #                 sender.send_lastest_result()
+    #             except Exception as e:
+    #                 traceback.print_exc()
 
     # for i in range(2000, 5001, 100):
     #     network_manager.check_network()
@@ -227,7 +342,6 @@ if __name__ == '__main__':
     #     res = os.system(cmd)
     #     print(res)
     #     sender.send_lastest_result()
-
 
     # for i in range(2000, 5001, 500):
     #     network_manager.check_network()

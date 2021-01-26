@@ -36,10 +36,10 @@
   []
   (.build
    (doto (MongoClientOptions/builder)
-     (.serverSelectionTimeout   1000)
-     (.maxWaitTime              60000)
-     (.connectTimeout           60000)
-     (.socketTimeout            30000))))
+     (.serverSelectionTimeout   2000)                       ;; Sets the server selection timeout in milliseconds, which defines how long the driver will wait for server selection to succeed before throwing an exception.
+     (.maxWaitTime              120000)                      ;; Sets the maximum time that a thread will block waiting for a connection.
+     (.connectTimeout           120000)                      ;; Sets the connection timeout.
+     (.socketTimeout            60000))))                   ;; Sets the socket timeout.
 
 (defn server-address
   "返回一个描述MongoDBServe的rAddress的对象"
